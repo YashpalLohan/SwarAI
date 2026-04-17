@@ -7,9 +7,26 @@ import VideoUploader from '../VideoUploader';
 import './Editor.css';
 
 const EditorWrapper = () => {
+  const [activeTab, setActiveTab] = useState('Projects');
   const [captions, setCaptions] = useState([]);
+  const [isVideoUploaded, setIsVideoUploaded] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [currentTime, setCurrentTime] = useState(0);
   const uploaderRef = useRef();
   
+  const handleReset = () => {
+    setCaptions([]);
+    setIsVideoUploaded(false);
+    setProjectName('');
+    setCurrentTime(0);
+  };
+  
+  const handleFileSelect = (file) => {
+    setIsVideoUploaded(true);
+    setProjectName(file.name);
+    setCaptions([]);
+  };
+
   const handleCaptionsGenerated = (generatedCaptions) => {
     setCaptions(generatedCaptions);
   };
@@ -34,54 +51,68 @@ const EditorWrapper = () => {
     if (uploaderRef.current) uploaderRef.current.exportSRT();
   };
 
+  const handleExportAudio = () => {
+    if (uploaderRef.current) uploaderRef.current.exportAudio();
+  };
+
+  const hasCaptions = captions && captions.length > 0;
+
   return (
     <div className="editor-container">
-      <EditorSidebar />
-      <EditorHeader projectName="Summer Memories - Day 3" onExport={handleExport} />
-      
-      <main className="editor-workspace">
-        <div className="player-preview">
-          <div className="preview-title">
-            <span>Video Player</span>
-            <button className="generate-btn" onClick={triggerGeneration}>
-              <Sparkles size={16} style={{ marginRight: '8px' }} />
-              Generate Captions (AI)
-            </button>
-          </div>
-          <VideoUploader 
-            ref={uploaderRef}
-            minimal={true} 
-            onCaptionsGenerated={handleCaptionsGenerated} 
-          />
-        </div>
-        
-        <div className="timeline-section">
-          <div className="timeline-header">
-            <span>Video Timeline</span>
-            <div className="timeline-controls">
-               {/* Controls mockup */}
-            </div>
-          </div>
-          <div className="timeline-visual">
-            <div className="audio-wave"></div>
-            <div className="video-frames"></div>
-            <div className="caption-tracks">
-               {captions.map((cap, i) => (
-                 <div key={i} className="timeline-caption-block" style={{
-                   left: `${(cap.start / 100) * 100}%`,
-                   width: `${((cap.end - cap.start) / 100) * 100}%`
-                 }}></div>
-               ))}
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <TranscriptSidebar 
-        captions={captions} 
-        onEdit={handleEdit} 
-        onDelete={handleDelete} 
+      <EditorSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <EditorHeader 
+        projectName={
+          activeTab === 'Projects' 
+            ? (isVideoUploaded ? projectName : "New Project") 
+            : activeTab
+        } 
+        onExport={handleExport} 
+        onExportAudio={handleExportAudio}
+        onReset={handleReset}
+        exportDisabled={activeTab !== 'Projects' || !hasCaptions}
       />
+      
+      {activeTab === 'Projects' ? (
+        <>
+          <main className="editor-workspace" style={{ gridColumn: hasCaptions ? '2' : '2 / 4' }}>
+            <div className="player-preview">
+              <div className="preview-title">
+                <span>Video Player</span>
+                {isVideoUploaded && !hasCaptions && (
+                  <button className="generate-btn" onClick={triggerGeneration}>
+                    Generate Captions (AI)
+                  </button>
+                )}
+              </div>
+              <VideoUploader 
+                ref={uploaderRef}
+                minimal={true} 
+                onFileSelect={handleFileSelect}
+                onCaptionsGenerated={handleCaptionsGenerated} 
+                onTimeUpdate={setCurrentTime}
+              />
+            </div>
+            
+
+          </main>
+
+          {hasCaptions && (
+            <TranscriptSidebar 
+              captions={captions} 
+              onEdit={handleEdit} 
+              onDelete={handleDelete} 
+              currentTime={currentTime}
+            />
+          )}
+        </>
+      ) : (
+        <main className="editor-workspace" style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: '#6b7280' }}>
+            <h2>{activeTab} Content</h2>
+            <p>This feature is coming soon to SwarAI.</p>
+          </div>
+        </main>
+      )}
     </div>
   );
 };

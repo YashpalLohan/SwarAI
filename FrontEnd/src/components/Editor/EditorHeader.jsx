@@ -1,13 +1,20 @@
-import React from 'react';
-import { ChevronDown, CheckCircle, Search } from 'lucide-react';
+import { ChevronDown, CheckCircle, Music, RotateCcw } from 'lucide-react';
 
-const EditorHeader = ({ projectName = "Untitled Project", onExport }) => {
+const EditorHeader = ({ projectName = "Untitled Project", onExport, onExportAudio, onReset, exportDisabled }) => {
   return (
     <header className="editor-header">
       <div className="header-left">
         <span className="project-title">
           Project: {projectName} <ChevronDown size={14} style={{ marginLeft: '4px' }} />
         </span>
+        {!exportDisabled && (
+          <button className="btn-reset" onClick={() => {
+            if(window.confirm('Reset this project? This will clear all current captions.')) onReset();
+          }}>
+            <RotateCcw size={14} />
+            Reset
+          </button>
+        )}
       </div>
       
       <div className="header-right">
@@ -15,14 +22,29 @@ const EditorHeader = ({ projectName = "Untitled Project", onExport }) => {
           <CheckCircle size={14} style={{ marginRight: '6px' }} />
           Saved to Cloud
         </span>
-        <button className="btn btn-export" onClick={onExport}>Export Video</button>
+        {!exportDisabled && (
+          <div className="header-actions-group">
+            <button 
+              className="btn btn-secondary-outline" 
+              onClick={onExportAudio}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Music size={14} />
+              Download Audio
+            </button>
+            <button 
+              className="btn btn-export" 
+              onClick={onExport}
+            >
+              Export SRT
+            </button>
+          </div>
+        )}
         <div className="user-profile">
           <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" />
           <span>Sarah J.</span>
         </div>
-        <div className="search-icon">
-          <Search size={18} color="#6b7280" />
-        </div>
+
       </div>
     </header>
   );

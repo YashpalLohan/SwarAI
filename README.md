@@ -1,6 +1,6 @@
-# Simora AI - Video Caption Generator
+# SwarAI - Video Caption Generator
 
-Simora AI is a web application that generates captions for videos using speech-to-text technology. It allows users to upload videos, extract audio, and generate accurate captions that can be displayed alongside the video. The application supports multiple languages and provides a user-friendly interface for editing and customizing captions.
+SwarAI is a web application that generates captions for videos using speech-to-text technology. It allows users to upload videos, extract audio, and generate accurate captions that can be displayed alongside the video. The application supports multiple languages and provides a user-friendly interface for editing and customizing captions.
 
 ## Features
 
@@ -64,23 +64,36 @@ Simora AI is a web application that generates captions for videos using speech-t
    cd BackEnd
    ```
 
-2. Install dependencies:
+2. Install Node.js dependencies:
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
-3. Create a `.env` file in the BackEnd directory with the following variables:
+3. Install Python dependencies (Required for Whisper):
+   ```bash
+   pip3 install openai-whisper setuptools-rust librosa transformers soundfile scipy
+   ```
+
+4. **macOS Only**: If you encounter SSL verification errors when downloading Whisper models, run:
+   ```bash
+   /Applications/Python\ 3.x/Install\ Certificates.command
+   ```
+   *(Replace 3.x with your actual Python version, e.g., 3.12)*
+
+5. Ensure FFmpeg is installed:
+   ```bash
+   # On macOS
+   brew install ffmpeg
+   ```
+
+6. Create a `.env` file in the BackEnd directory:
    ```
    PORT=3001
-   WHISPER_MODEL=base.en  # or other Whisper model
+   WHISPER_MODEL=base
    ```
 
-4. Start the backend server:
+7. Start the backend server:
    ```bash
-   npm start
-   # or for development with auto-reload
    npm run dev
    ```
 
@@ -96,7 +109,7 @@ Simora AI is a web application that generates captions for videos using speech-t
 ## Project Structure
 
 ```
-Simora-AI/
+SwarAI/
 ├── BackEnd/
 │   ├── src/
 │   │   ├── middleware/    # Express middleware

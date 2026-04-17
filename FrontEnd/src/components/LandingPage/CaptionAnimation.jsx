@@ -37,7 +37,7 @@ const CaptionAnimation = () => {
 
           <div className="ui-footer">
             <div className="dynamic-captions">
-              <span className="word w1">SimoraAi</span>
+              <span className="word w1">SwarAI</span>
               <span className="word w2">makes</span>
               <span className="word w3">video</span>
               <span className="word w4">accessible.</span>

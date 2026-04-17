@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Play, Pause, Volume2, Maximize2, Type } from 'lucide-react';
 
-const VideoPlayerWithCaptions = ({ videoFile, captions, onDownloadSrt }) => {
+const VideoPlayerWithCaptions = ({ videoFile, captions, onTimeUpdate }) => {
   const videoRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -8,25 +9,21 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onDownloadSrt }) => {
   const [videoUrl, setVideoUrl] = useState(null);
   const [selectedFont, setSelectedFont] = useState('Inter');
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
   const [processedCaptions, setProcessedCaptions] = useState([]);
   const [currentWords, setCurrentWords] = useState([]);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(0);
   
   const fontOptions = [
     { value: 'Inter', label: 'Inter (Modern)' },
-    { value: 'Arial', label: 'Arial (Classic)' },
-    { value: 'Georgia', label: 'Georgia (Serif)' }
+    { value: 'Outfit', label: 'Outfit (Sleek)' },
+    { value: 'Georgia', label: 'Georgia (Elegant)' }
   ];
 
   useEffect(() => {
     if (videoFile) {
       const url = URL.createObjectURL(videoFile);
       setVideoUrl(url);
-      
-      return () => {
-        URL.revokeObjectURL(url);
-      };
+      return () => URL.revokeObjectURL(url);
     }
   }, [videoFile]);
 
@@ -36,35 +33,22 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onDownloadSrt }) => {
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
+      if (onTimeUpdate) onTimeUpdate(video.currentTime);
     };
-
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    const handleLoadedMetadata = () => {
-      console.log('Video metadata loaded');
-      setDuration(video.duration);
-    };
-    const handleError = (e) => {
-      console.error('Video error:', e);
-    };
-    const handleVolumeChange = () => {
-      setVolume(video.volume);
-    };
+    const handleLoadedMetadata = () => setDuration(video.duration);
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('error', handleError);
-    video.addEventListener('volumechange', handleVolumeChange);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('error', handleError);
-      video.removeEventListener('volumechange', handleVolumeChange);
     };
   }, [videoUrl]);
 
@@ -77,181 +61,137 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onDownloadSrt }) => {
     const processed = [];
     captions.forEach(caption => {
       const words = caption.text.split(' ');
-      const maxWordsPerSegment = 6; 
-      const segmentDuration = (caption.end - caption.start) / Math.ceil(words.length / maxWordsPerSegment);
+      const wordsPerSegment = 8; // Increased for better stability
+      const totalSegments = Math.ceil(words.length / wordsPerSegment);
+      const segDuration = (caption.end - caption.start) / totalSegments;
       
-      for (let i = 0; i < words.length; i += maxWordsPerSegment) {
-        const segmentWords = words.slice(i, i + maxWordsPerSegment);
-        const segmentStart = caption.start + (i / maxWordsPerSegment) * segmentDuration;
-        const segmentEnd = Math.min(caption.start + ((i + maxWordsPerSegment) / maxWordsPerSegment) * segmentDuration, caption.end);
-        
+      for (let i = 0; i < words.length; i += wordsPerSegment) {
+        const segWords = words.slice(i, i + wordsPerSegment);
+        const segmentIndex = i / wordsPerSegment;
         processed.push({
-          start: segmentStart,
-          end: segmentEnd,
-          text: segmentWords.join(' '),
-          words: segmentWords
+          start: caption.start + segmentIndex * segDuration,
+          end: caption.start + (segmentIndex + 1) * segDuration,
+          text: segWords.join(' '),
+          words: segWords,
+          originalEnd: caption.end
         });
       }
     });
-    
     setProcessedCaptions(processed);
   }, [captions]);
 
   useEffect(() => {
-    if (!processedCaptions || processedCaptions.length === 0) {
-      setCurrentCaption('');
-      setCurrentWords([]);
-      return;
-    }
-
-    const current = processedCaptions.find(caption => 
-      currentTime >= caption.start && currentTime <= caption.end
+    // Find the caption that should be active. 
+    // We add a tiny 0.3s grace period to the end to prevent flickering in gaps
+    const current = processedCaptions.find(c => 
+      currentTime >= (c.start - 0.1) && currentTime <= (c.end + 0.3)
     );
 
     if (current) {
       setCurrentCaption(current.text);
       setCurrentWords(current.words);
-      
-      const segmentProgress = (currentTime - current.start) / (current.end - current.start);
-      const wordIndex = Math.floor(segmentProgress * current.words.length);
-      setHighlightedWordIndex(Math.min(wordIndex, current.words.length - 1));
+      const progress = (currentTime - current.start) / (current.end - current.start);
+      const idx = Math.floor(progress * current.words.length);
+      setHighlightedWordIndex(Math.min(Math.max(0, idx), current.words.length - 1));
     } else {
+      // Small optimization: only clear if we are significantly away from any caption
       setCurrentCaption('');
       setCurrentWords([]);
-      setHighlightedWordIndex(0);
     }
   }, [currentTime, processedCaptions]);
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  const formatTime = (s) => {
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleSeek = (e) => {
-    const video = videoRef.current;
-    if (!video) return;
-    
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
-    video.currentTime = percent * duration;
+    videoRef.current.currentTime = percent * duration;
   };
 
   const togglePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play();
+    if (isPlaying) videoRef.current.pause();
+    else videoRef.current.play();
+  };
+
+  const playerRef = useRef(null);
+
+  const toggleFullscreen = () => {
+    if (playerRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        playerRef.current.requestFullscreen();
+      }
     }
   };
 
-    if (!videoFile) {
-      return null;
-    }
+  if (!videoFile) return null;
 
-    return (
-    <div className="remotion-video-player">
-      <div className="player-header">
-        <div className="header-row">
-          <h3>Video Player with Captions</h3>
-          <div className="header-controls">
-            <div className="font-selector">
-              <select 
-                value={selectedFont} 
-                onChange={(e) => setSelectedFont(e.target.value)}
-                className="font-dropdown"
-              >
-                {fontOptions.map(font => (
-                  <option key={font.value} value={font.value}>
-                    {font.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {onDownloadSrt && (
-              <button 
-                onClick={onDownloadSrt}
-                className="download-srt-btn"
-                title="Download SRT file"
-              >
-                Download SRT
-              </button>
-            )}
-          </div>
+  return (
+    <div className="premium-player" ref={playerRef}>
+      <div className="player-top-bar">
+        <div className="font-pill">
+          <Type size={14} className="icon" />
+          <select 
+            value={selectedFont} 
+            onChange={(e) => setSelectedFont(e.target.value)}
+            className="font-select"
+          >
+            {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
       </div>
       
-      <div className="player-wrapper">
-        <div className="video-container">
-          {videoUrl ? (
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              className="remotion-video"
-              preload="metadata"
-              onLoadStart={() => console.log('Video loading started')}
-              onCanPlay={() => console.log('Video can play')}
-              onError={(e) => console.error('Video error:', e)}
-            />
-          ) : (
-            <div className="video-loading">Loading video...</div>
-          )}
-          
-          {currentCaption && (
-            <div 
-              className="remotion-caption-overlay"
-              style={{ fontFamily: selectedFont }}
-            >
-              <div className="caption-text">
-                {currentWords.map((word, index) => (
-                  <span 
-                    key={index}
-                    className={`caption-word ${
-                      index <= highlightedWordIndex ? 'highlighted' : 'unhighlighted'
-                    }`}
-                  >
-                    {word}
-                    {index < currentWords.length - 1 && ' '}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="video-viewport">
+        {videoUrl ? (
+          <video ref={videoRef} src={videoUrl} className="main-video" onClick={togglePlayPause} />
+        ) : (
+          <div className="loading-state">Initializing Player...</div>
+        )}
         
-        <div className="remotion-controls">
-          <div className="control-row">
-            <button 
-              className="play-pause-btn"
-              onClick={togglePlayPause}
-            >
-              {isPlaying ? '⏸' : '▶'}
-            </button>
-            
-            <div className="time-display">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-            
-            <div className="progress-container" onClick={handleSeek}>
-              <div className="progress-track">
-                <div 
-                  className="progress-fill"
-                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                ></div>
+        {currentCaption && (
+          <div className="glass-caption" style={{ fontFamily: selectedFont }}>
+            {currentWords.map((word, i) => (
+              <span key={i} className={`word ${i <= highlightedWordIndex ? 'active' : ''}`}>
+                {word}{' '}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="overlay-controls">
+          <div className="progress-bar-container" onClick={handleSeek}>
+            <div className="progress-track-bg"></div>
+            <div 
+              className="progress-track-fill" 
+              style={{ width: `${(currentTime / duration) * 100}%` }}
+            ></div>
+            <div 
+              className="progress-handle"
+              style={{ left: `${(currentTime / duration) * 100}%` }}
+            ></div>
+          </div>
+          
+          <div className="controls-row">
+            <div className="left-controls">
+              <button className="control-btn" onClick={togglePlayPause}>
+                {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+              </button>
+              <div className="time-info">
+                {formatTime(currentTime)} <span>/ {formatTime(duration)}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="player-info">
-        <div className="info-grid">
-          <div className="info-item">
-            <span className="info-label">Status:</span>
-            <span className="info-value">{isPlaying ? 'Playing' : 'Paused'}</span>
+            
+            <div className="right-controls">
+              <button className="control-btn"><Volume2 size={20} /></button>
+              <button className="control-btn" onClick={toggleFullscreen}>
+                <Maximize2 size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

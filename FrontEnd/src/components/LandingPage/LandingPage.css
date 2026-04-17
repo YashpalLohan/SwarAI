@@ -25,12 +25,7 @@
   color: var(--text-dark);
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  background: var(--primary);
-  border-radius: 8px;
-}
+/* Removed .logo-icon as it's now in index.css */
 
 .nav-links {
   display: flex;

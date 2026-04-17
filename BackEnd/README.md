@@ -1,4 +1,4 @@
-# Video Caption Backend
+# SwarAI Backend
 
 An Express.js backend service that receives audio files, processes them using a local Whisper model, and generates SRT captions compatible with Remotion.
 
@@ -12,20 +12,32 @@ An Express.js backend service that receives audio files, processes them using a 
 
 ## Setup
 
-1. Install dependencies:
+1. Install Node.js dependencies:
 ```bash
 npm install
 ```
 
-2. Install Whisper model (required for transcription):
+2. Install Python dependencies (Required for Whisper & Hinglish support):
 ```bash
-# Install whisper locally (you may need Python and pip)
-pip install openai-whisper
+pip3 install openai-whisper setuptools-rust librosa transformers soundfile scipy
 ```
 
-3. Start the server:
+3. **macOS Troubleshooting**: If Whisper fails to download models with an SSL error, run the certificate installer provided by Python:
 ```bash
-# Development mode
+/Applications/Python\ 3.x/Install\ Certificates.command
+```
+
+4. Install FFmpeg:
+```bash
+# macOS
+brew install ffmpeg
+# Windows
+# Download from ffmpeg.org and add to PATH
+```
+
+5. Start the server:
+```bash
+# Development mode (with nodemon)
 npm run dev
 
 # Production mode
@@ -33,6 +45,7 @@ npm start
 ```
 
 The server will run on `http://localhost:3001`
+You can verify it's working by visiting `http://localhost:3001/health`
 
 ## API Endpoints
 
@@ -69,7 +82,7 @@ Health check endpoint.
 ## Project Structure
 
 ```
-video-caption-backend/
+swarai-backend/
 ├── src/
 │   ├── server.js          # Main server file
 │   ├── routes/

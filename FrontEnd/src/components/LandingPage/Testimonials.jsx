@@ -4,7 +4,7 @@ const testimonials = [
   {
     name: 'MARK VLOGS',
     role: 'Content Creator, YouTube',
-    text: 'SimoraAi has completely changed my workflow. I used to spend hours manually typing captions, but now it\'s done in seconds with incredible accuracy.',
+    text: 'SwarAI has completely changed my workflow. I used to spend hours manually typing captions, but now it\'s done in seconds with incredible accuracy.',
     rating: 5
   },
   {

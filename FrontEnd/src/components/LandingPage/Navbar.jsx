@@ -20,7 +20,7 @@ const Navbar = () => {
         <div className="logo">
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="logo-icon"></div>
-            <span>SimoraAi</span>
+            <span>SwarAI</span>
           </Link>
         </div>
         <ul className="nav-links">

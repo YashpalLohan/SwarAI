@@ -8,7 +8,7 @@ const Footer = () => {
           <div className="footer-brand">
             <div className="logo footer-logo">
               <div className="logo-icon"></div>
-              <span>SimoraAi</span>
+              <span>SwarAI</span>
             </div>
             <p>The ultimate AI-powered video captioning platform that helps you make your content accessible and engaging for everyone.</p>
           </div>

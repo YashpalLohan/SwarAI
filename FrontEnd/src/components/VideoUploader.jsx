@@ -4,7 +4,7 @@ import { toBlobURL, fetchFile } from '@ffmpeg/util';
 import { UploadCloud, FileVideo, Info } from 'lucide-react';
 import VideoPlayerWithCaptions from './VideoPlayerWithCaptions';
 
-const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated }, ref) => {
+const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFileSelect, onTimeUpdate }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isFFmpegLoaded, setIsFFmpegLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -28,6 +28,9 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated }, ref)
     },
     exportSRT: () => {
       downloadSRT();
+    },
+    exportAudio: () => {
+      downloadAudio();
     }
   }));
 
@@ -55,6 +58,7 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated }, ref)
       setExtractedAudioUrl(null);
       setCaptions(null);
       setSrtContent(null);
+      if (onFileSelect) onFileSelect(file);
     } else {
       alert('Please select a valid video file');
     }
@@ -190,124 +194,100 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated }, ref)
 
   return (
     <div className={`video-uploader ${minimal ? 'video-uploader-minimal' : ''}`}>
-      <div className="header-section">
-        <h1 className="title">SimoraAi Live Demo</h1>
-        <p className="subtitle">Upload a video file to generate captions using AI</p>
-      </div>
+      {!captions && (
+        <>
+          <div className="header-section">
+            <h1 className="title">SwarAI Live Demo</h1>
+            <p className="subtitle">Upload a video file to generate captions using AI</p>
+          </div>
 
-      <div className="main-content">
-        <div className="upload-section">
-          <div
-            className={`upload-zone ${isDragOver ? 'drag-over' : ''} ${selectedFile ? 'has-file' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/*"
-              onChange={handleFileInputChange}
-              className="file-input"
-            />
-            
-            {selectedFile ? (
-              <div className="file-info">
-                <div className="file-icon">
-                  <FileVideo size={32} color="var(--primary)" />
+          <div className="upload-section">
+            <div
+              className={`upload-zone ${isDragOver ? 'drag-over' : ''} ${selectedFile ? 'has-file' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleFileInputChange}
+                className="file-input"
+              />
+              
+              {selectedFile ? (
+                <div className="file-info">
+                  <div className="file-icon">
+                    <FileVideo size={36} color="var(--primary)" />
+                  </div>
+                  <div className="file-details">
+                    <p className="file-name">{selectedFile.name}</p>
+                    <p className="file-size">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </div>
                 </div>
-                <div className="file-details">
-                  <p className="file-name">{selectedFile.name}</p>
-                  <p className="file-size">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+              ) : (
+                <div className="upload-placeholder">
+                  <div className="upload-icon-wrapper">
+                    <UploadCloud size={40} className="upload-icon" />
+                  </div>
+                  <p className="upload-text">Drag and drop a video file here, or click to select</p>
+                  <p className="supported-formats">
+                    Supports: MP4, MOV, AVI
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="upload-placeholder">
-                <div className="upload-icon">
-                  <UploadCloud size={48} color="#94a3b8" style={{ marginBottom: '16px' }} />
+              )}
+            </div>
+
+            {selectedFile && !minimal && (
+              <>
+                <div className="actions">
+                  <button
+                    onClick={extractAudio}
+                    disabled={isLoading || isGeneratingCaptions}
+                    className="extract-btn"
+                  >
+                    {isLoading ? `Generating Captions` : 
+                     isGeneratingCaptions ? 'Generating Captions...' : 
+                     'Generate Captions'}
+                  </button>
                 </div>
-                <p>Drag and drop a video file here, or click to select</p>
-                <p className="supported-formats">
-                  <Info size={12} style={{ marginRight: '6px' }} />
-                  Supports: MP4, AVI, MOV, MKV, and more
+              </>
+            )}
+
+            {(isLoading || isGeneratingCaptions) && (
+              <div className="modern-progress-container">
+                <div className="status-badge">
+                  <div className="pulse-dot"></div>
+                  <span>{isLoading ? 'Processing Video' : 'AI Transcribing...'}</span>
+                </div>
+                
+                <div className="modern-progress-bar">
+                  <div 
+                    className="modern-progress-fill" 
+                    style={{ width: `${isLoading ? progress : 100}%`, transition: isGeneratingCaptions ? 'width 2s ease-in-out' : 'width 0.3s ease' }}
+                  ></div>
+                </div>
+                
+                <p className="modern-progress-text">
+                  {isLoading ? `Preparing audio: ${progress}%` : 'SwarAI is generating your captions using Whisper AI. This may take a minute...'}
                 </p>
               </div>
             )}
           </div>
-
-          {selectedFile && (
-            <>
-              <div className="actions">
-                <button
-                  onClick={extractAudio}
-                  disabled={isLoading || isGeneratingCaptions}
-                  className="extract-btn"
-                >
-                  {isLoading ? `Generating Captions` : 
-                   isGeneratingCaptions ? 'Generating Captions...' : 
-                   'Generate Captions'}
-                </button>
-              </div>
-            </>
-          )}
-
-          {(isLoading || isGeneratingCaptions) && (
-            <div className="progress-container">
-              {isLoading && (
-                <>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                </>
-              )}
-              {isGeneratingCaptions && (
-                <p className="progress-text">Generating captions, please wait.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {extractedAudioUrl && (
-          <div className="results-section">
-            <div className="results-grid">
-              {captions && captions.length > 0 && (
-                <div className="captions-section">
-                  <div className="captions-result">
-                    <h3 className="title">Generated Captions</h3>
-                    <div className="captions-preview">
-                      {captions.slice(0, 5).map((caption, index) => (
-                        <div key={index} className="caption-segment">
-                          <span className="caption-time">
-                            {Math.floor(caption.start / 60)}:{(caption.start % 60).toFixed(1).padStart(4, '0')} - {Math.floor(caption.end / 60)}:{(caption.end % 60).toFixed(1).padStart(4, '0')}
-                          </span>
-                          <span className="caption-text">{caption.text}</span>
-                        </div>
-                      ))}
-                      {captions.length > 5 && (
-                        <p className="caption-more">... and {captions.length - 5} more segments</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </>
+      )}
 
         {captions && captions.length > 0 && selectedFile && (
           <div className="video-section">
             <VideoPlayerWithCaptions 
               videoFile={selectedFile}
               captions={captions}
-              onDownloadSrt={srtContent ? downloadSRT : undefined}
+              onTimeUpdate={onTimeUpdate}
             />
           </div>
         )}
-      </div>
     </div>
   );
 });

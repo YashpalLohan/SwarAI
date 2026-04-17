@@ -1,5 +1,5 @@
 {
-  "name": "video-caption-backend",
+  "name": "swarai-backend",
   "version": "1.0.0",
   "description": "Express.js backend for video caption generation using Whisper",
   "main": "src/server.js",

@@ -2,6 +2,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 
+const pythonCmd = process.platform === 'win32' ? 'py' : 'python3';
+
 async function processAudioWithWhisper(audioFilePath, model = 'base') {
   return new Promise((resolve, reject) => {
     console.log(`🎙️ Starting Whisper transcription with model: ${model}`);
@@ -18,9 +20,9 @@ async function processAudioWithWhisper(audioFilePath, model = 'base') {
       '--word_timestamps', 'True'
     ];
 
-    console.log('Whisper command:', 'py', whisperArgs.join(' '));
+    console.log('Whisper command:', pythonCmd, whisperArgs.join(' '));
 
-    const whisperProcess = spawn('py', whisperArgs, {
+    const whisperProcess = spawn(pythonCmd, whisperArgs, {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -67,12 +69,13 @@ async function processAudioWithWhisper(audioFilePath, model = 'base') {
 
     whisperProcess.on('error', (error) => {
       console.error('Error spawning Whisper process:', error);
-      reject(new Error('Failed to start Whisper transcription. Make sure Whisper is installed: pip install openai-whisper'));
+      const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
+      reject(new Error(`Failed to start Whisper transcription. Make sure Whisper is installed: ${pipCmd} install openai-whisper`));
     });
   });
 }
 
-async function processAudioWithWhisperSimple(audioFilePath, model = 'large') {
+async function processAudioWithWhisperSimple(audioFilePath, model = process.env.WHISPER_MODEL || 'base') {
   return new Promise((resolve, reject) => {
     console.log(`🎙️ Starting Whisper transcription with multilingual model: ${model}`);
     
@@ -89,9 +92,9 @@ async function processAudioWithWhisperSimple(audioFilePath, model = 'large') {
       '--temperature', '0.0'  
     ];
 
-    console.log('Whisper command:', 'whisper', whisperArgs.join(' '));
+    console.log('Whisper command:', pythonCmd, '-m', 'whisper', whisperArgs.join(' '));
 
-    const whisperProcess = spawn('whisper', whisperArgs, {
+    const whisperProcess = spawn(pythonCmd, ['-m', 'whisper', ...whisperArgs], {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -112,7 +115,8 @@ async function processAudioWithWhisperSimple(audioFilePath, model = 'large') {
         console.error('Stderr:', stderr);
         
         if (stderr.includes('certificate verify failed') || stderr.includes('SSL:')) {
-          return reject(new Error(`Whisper model download failed due to SSL/network issues. Please pre-download the model: python3 -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import whisper; whisper.load_model('${model}')"`));
+          const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
+          return reject(new Error(`Whisper model download failed due to SSL/network issues. Please pre-download the model: ${pythonCmd} -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import whisper; whisper.load_model('${model}')"`));
         }
         
         return reject(new Error(`Whisper transcription failed: ${stderr}`));
@@ -147,7 +151,8 @@ async function processAudioWithWhisperSimple(audioFilePath, model = 'large') {
 
     whisperProcess.on('error', (error) => {
       console.error('Error spawning Whisper process:', error);
-      reject(new Error('Failed to start Whisper transcription. Make sure Whisper is installed: pip install openai-whisper'));
+      const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
+      reject(new Error(`Failed to start Whisper transcription. Make sure Whisper is installed: ${pipCmd} install openai-whisper`));
     });
   });
 }
@@ -196,9 +201,9 @@ async function processAudioWithHinglishWhisper(audioFilePath, model = 'Oriserve/
       '--output', outputFile
     ];
 
-    console.log('Hinglish Whisper command:', 'py', pythonArgs.join(' '));
+    console.log('Hinglish Whisper command:', pythonCmd, pythonArgs.join(' '));
 
-    const pythonProcess = spawn('py', pythonArgs, {
+    const pythonProcess = spawn(pythonCmd, pythonArgs, {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 

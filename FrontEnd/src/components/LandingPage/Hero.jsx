@@ -10,7 +10,7 @@ const Hero = () => {
         <div className="hero-content">
           <h1>Effortless AI <br /><span>Video Captions</span></h1>
           <p className="hero-subtitle">
-            Experience the future of video content with SimoraAi. Our advanced AI automatically generates highly accurate captions and subtitles, helping you reach more viewers and increase engagement instantly.
+            Experience the future of video content with SwarAI. Our advanced AI automatically generates highly accurate captions and subtitles, helping you reach more viewers and increase engagement instantly.
           </p>
           <div className="hero-btns">
             <Link to="/editor" className="btn btn-primary">Try Live Demo</Link>
@@ -20,7 +20,7 @@ const Hero = () => {
         
         <div className="hero-mockup">
           <div className="mockup-img-wrapper">
-             <img src={captionMockup} alt="SimoraAi Caption Editor Mockup" />
+             <img src={captionMockup} alt="SwarAI Caption Editor Mockup" />
              <div className="mockup-overlay-card top-left">
                 <div className="avatar">
                   <PlayCircle size={20} color="#10b981" />

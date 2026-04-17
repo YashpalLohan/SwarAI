@@ -10,43 +10,49 @@ import {
   Settings 
 } from 'lucide-react';
 
-const EditorSidebar = () => {
+const EditorSidebar = ({ activeTab, onTabChange }) => {
+  const navItems = [
+    { label: 'Dashboard', icon: LayoutDashboard },
+    { label: 'Projects', icon: Video },
+    { label: 'Media', icon: ImageIcon },
+    { label: 'Style Sync', icon: Repeat },
+    { label: 'Export', icon: Share },
+    { label: 'Team', icon: Users },
+  ];
+
   return (
     <aside className="editor-sidebar">
       <div className="sidebar-brand">
-        <div className="logo-icon-wrapper">
-          <div className="logo-icon"></div>
-        </div>
-        <span>SimoraAi</span>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'inherit' }}>
+          <div className="logo-icon-wrapper">
+            <div className="logo-icon"></div>
+          </div>
+          <span>SwarAI</span>
+        </Link>
       </div>
       
       <nav className="sidebar-nav">
         <ul>
-          <li className="nav-item">
-            <LayoutDashboard size={18} /> Dashboard
-          </li>
-          <li className="nav-item active">
-            <Video size={18} /> Projects
-          </li>
-          <li className="nav-item">
-            <ImageIcon size={18} /> Media
-          </li>
-          <li className="nav-item">
-            <Repeat size={18} /> Style Sync
-          </li>
-          <li className="nav-item">
-            <Share size={18} /> Export
-          </li>
-          <li className="nav-item">
-            <Users size={18} /> Team
-          </li>
+          {navItems.map((item) => (
+            <li 
+              key={item.label} 
+              className={`nav-item ${activeTab === item.label ? 'active' : ''}`}
+              onClick={() => onTabChange(item.label)}
+            >
+              <item.icon size={18} /> {item.label}
+            </li>
+          ))}
         </ul>
       </nav>
 
       <div className="sidebar-footer">
-        <div className="nav-item">
+        <li 
+          className={`nav-item ${activeTab === 'Settings' ? 'active' : ''}`}
+          onClick={() => onTabChange('Settings')}
+          style={{ listStyle: 'none' }}
+        >
           <Settings size={18} /> Settings
-        </div>
+        </li>
       </div>
     </aside>
   );
