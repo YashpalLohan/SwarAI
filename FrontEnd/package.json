@@ -13,8 +13,10 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@remotion/player": "^4.0.354",
+    "lucide-react": "^1.8.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.14.1",
     "remotion": "^4.0.354"
   },
   "devDependencies": {

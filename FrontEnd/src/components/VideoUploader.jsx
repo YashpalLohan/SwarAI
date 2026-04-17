@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL, fetchFile } from '@ffmpeg/util';
+import { UploadCloud, FileVideo, Info } from 'lucide-react';
 import VideoPlayerWithCaptions from './VideoPlayerWithCaptions';
 
-const VideoUploader = () => {
+const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isFFmpegLoaded, setIsFFmpegLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -16,6 +17,19 @@ const VideoUploader = () => {
   const [useHinglishModel, setUseHinglishModel] = useState(true);
   const fileInputRef = useRef(null);
   const ffmpegRef = useRef(new FFmpeg());
+
+  useImperativeHandle(ref, () => ({
+    triggerGeneration: () => {
+      if (selectedFile) extractAudio();
+      else alert('Please upload a video first');
+    },
+    openFilePicker: () => {
+      fileInputRef.current?.click();
+    },
+    exportSRT: () => {
+      downloadSRT();
+    }
+  }));
 
   const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -68,6 +82,7 @@ const VideoUploader = () => {
       if (result.success) {
         setCaptions(result.transcription);
         setSrtContent(result.srt);
+        if (onCaptionsGenerated) onCaptionsGenerated(result.transcription);
         console.log('Captions generated successfully:', result);
       } else {
         throw new Error(result.message || 'Failed to generate captions');
@@ -174,9 +189,9 @@ const VideoUploader = () => {
   };
 
   return (
-    <div className="video-uploader">
+    <div className={`video-uploader ${minimal ? 'video-uploader-minimal' : ''}`}>
       <div className="header-section">
-        <h1 className="title">Remotion Video Player</h1>
+        <h1 className="title">SimoraAi Live Demo</h1>
         <p className="subtitle">Upload a video file to generate captions using AI</p>
       </div>
 
@@ -199,7 +214,9 @@ const VideoUploader = () => {
             
             {selectedFile ? (
               <div className="file-info">
-                <div className="file-icon"></div>
+                <div className="file-icon">
+                  <FileVideo size={32} color="var(--primary)" />
+                </div>
                 <div className="file-details">
                   <p className="file-name">{selectedFile.name}</p>
                   <p className="file-size">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
@@ -207,9 +224,14 @@ const VideoUploader = () => {
               </div>
             ) : (
               <div className="upload-placeholder">
-                <div className="upload-icon"></div>
+                <div className="upload-icon">
+                  <UploadCloud size={48} color="#94a3b8" style={{ marginBottom: '16px' }} />
+                </div>
                 <p>Drag and drop a video file here, or click to select</p>
-                <p className="supported-formats">Supports: MP4, AVI, MOV, MKV, and more</p>
+                <p className="supported-formats">
+                  <Info size={12} style={{ marginRight: '6px' }} />
+                  Supports: MP4, AVI, MOV, MKV, and more
+                </p>
               </div>
             )}
           </div>
@@ -288,6 +310,6 @@ const VideoUploader = () => {
       </div>
     </div>
   );
-};
+});
 
 export default VideoUploader;

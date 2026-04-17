@@ -18,9 +18,9 @@ async function processAudioWithWhisper(audioFilePath, model = 'base') {
       '--word_timestamps', 'True'
     ];
 
-    console.log('Whisper command:', 'python', whisperArgs.join(' '));
+    console.log('Whisper command:', 'py', whisperArgs.join(' '));
 
-    const whisperProcess = spawn('python', whisperArgs, {
+    const whisperProcess = spawn('py', whisperArgs, {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -196,9 +196,9 @@ async function processAudioWithHinglishWhisper(audioFilePath, model = 'Oriserve/
       '--output', outputFile
     ];
 
-    console.log('Hinglish Whisper command:', 'python3', pythonArgs.join(' '));
+    console.log('Hinglish Whisper command:', 'py', pythonArgs.join(' '));
 
-    const pythonProcess = spawn('python3', pythonArgs, {
+    const pythonProcess = spawn('py', pythonArgs, {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -213,16 +213,16 @@ async function processAudioWithHinglishWhisper(audioFilePath, model = 'Oriserve/
       console.log('Hinglish Whisper:', data.toString().trim());
     });
 
-    pythonProcess.on('close', (code) => {
+    pythonProcess.on('close', async (code) => {
       if (code !== 0) {
-        console.error('Hinglish Whisper process failed with code:', code);
-        console.error('Error output:', stderr);
-        
-        if (stderr.includes('SSL') || stderr.includes('certificate')) {
-          return reject(new Error(`Hinglish model download failed due to SSL/network issues. Please check your internet connection.`));
+        console.warn(`Hinglish Whisper failed (Code ${code}). Falling back to standard Whisper...`);
+        try {
+          const fallbackSegments = await processAudioWithWhisperSimple(audioFilePath);
+          return resolve(fallbackSegments);
+        } catch (fallbackError) {
+          console.error('Hinglish fallback also failed:', fallbackError);
+          return reject(new Error(`Hinglish transcription failed and fallback failed: ${stderr}`));
         }
-        
-        return reject(new Error(`Hinglish Whisper transcription failed: ${stderr}`));
       }
 
       try {

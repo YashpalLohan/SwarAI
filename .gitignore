@@ -1,0 +1,50 @@
+# Dependency directories
+node_modules/
+FrontEnd/node_modules/
+BackEnd/node_modules/
+
+# Environment files
+.env
+FrontEnd/.env
+BackEnd/.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+FrontEnd/dist/
+build/
+FrontEnd/build/
+
+# Backend specific
+BackEnd/uploads/*
+!BackEnd/uploads/.gitkeep
+BackEnd/storage/*
+backEnd/logs/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+public/innovation-video.mp4
+test video.mp4
+ffmpeg-core.*

@@ -7,6 +7,17 @@ import librosa
 import soundfile as sf
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import warnings
+import os
+import ssl
+
+# Bypass SSL verification for model downloading if needed
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
 warnings.filterwarnings("ignore")
 
 def transcribe_hinglish(audio_path, model_name="Oriserve/Whisper-Hindi2Hinglish-Swift"):
