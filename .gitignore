@@ -1,30 +1,36 @@
 # Dependency directories
 node_modules/
-FrontEnd/node_modules/
-BackEnd/node_modules/
+**/node_modules/
 
 # Environment files
 .env
-FrontEnd/.env
-BackEnd/.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+**/.env
+**/.env.local
 
 # Build outputs
-dist/
-FrontEnd/dist/
-build/
-FrontEnd/build/
+/dist/
+/build/
+**/dist/
+**/build/
 
 # Backend specific
 BackEnd/uploads/*
 !BackEnd/uploads/.gitkeep
+BackEnd/models_cache/
 BackEnd/storage/*
-backEnd/logs/
+BackEnd/logs/
+*.db
+*.db-journal
 
-# Python artifacts
+# Prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# Python/AI artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -35,6 +41,8 @@ env/
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
 desktop.ini
 
@@ -43,8 +51,19 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# Project specific
-public/innovation-video.mp4
-test video.mp4
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Project specific media/binary (keep repository light)
+*.mp4
+*.mkv
+*.mov
+*.avi
 ffmpeg-core.*
+node_modules/
