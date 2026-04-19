@@ -1,108 +1,94 @@
-# SwarAI Backend
+# SwarAI - Backend
 
-An Express.js backend service that receives audio files, processes them using a local Whisper model, and generates SRT captions compatible with Remotion.
+The backend engine for SwarAI Studio, a powerful video caption generation and editing platform. This service handles video processing, speech-to-text transcription using Whisper, user authentication, and project management.
 
 ## Features
 
-- Audio file upload endpoint
-- Local Whisper model integration for transcription
-- SRT file generation compatible with Remotion
-- CORS enabled for frontend integration
-- Error handling and validation
+- **Video Transcription**: AI-powered transcription using OpenAI's Whisper model via HuggingFace or Groq.
+- **Authentication**: Secure JWT-based authentication for user accounts.
+- **Project Management**: CRUD operations for user video projects.
+- **File Handling**: Robust video/audio file upload management.
+- **Database**: PostgreSQL integration with Prisma ORM.
 
-## Setup
+## Tech Stack
 
-1. Install Node.js dependencies:
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: PostgreSQL (Neon.tech recommended)
+- **ORM**: Prisma
+- **AI/ML**: Whisper (Speech-to-Text)
+- **Authentication**: JSON Web Tokens (JWT) & BcryptJS
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (v16+ recommended)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [PostgreSQL](https://www.postgresql.org/) database
+
+## Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd SwarAI/BackEnd
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**:
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Fill in your actual credentials in the `.env` file.
+
+4. **Prisma Setup**:
+   - Generate Prisma client:
+     ```bash
+     npx prisma generate
+     ```
+   - Run migrations (if applicable):
+     ```bash
+     npx prisma db push
+     ```
+
+## Running the Application
+
+### Development Mode
 ```bash
-npm install
-```
-
-2. Install Python dependencies (Required for Whisper & Hinglish support):
-```bash
-pip3 install openai-whisper setuptools-rust librosa transformers soundfile scipy
-```
-
-3. **macOS Troubleshooting**: If Whisper fails to download models with an SSL error, run the certificate installer provided by Python:
-```bash
-/Applications/Python\ 3.x/Install\ Certificates.command
-```
-
-4. Install FFmpeg:
-```bash
-# macOS
-brew install ffmpeg
-# Windows
-# Download from ffmpeg.org and add to PATH
-```
-
-5. Start the server:
-```bash
-# Development mode (with nodemon)
 npm run dev
+```
+The server will start on `http://localhost:3001` (or your specified `PORT`).
 
-# Production mode
+### Production Mode
+```bash
 npm start
 ```
 
-The server will run on `http://localhost:3001`
-You can verify it's working by visiting `http://localhost:3001/health`
+## API Routes
 
-## API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | `GET` | Health check endpoint |
+| `/api/auth/*` | `ALL` | Authentication routes (signup, login, etc.) |
+| `/api/projects/*` | `ALL` | Project management routes |
+| `/api/*` | `ALL` | Upload and processing routes |
 
-### POST `/api/upload-audio`
-Uploads an audio file and returns SRT captions.
+## Directory Structure
 
-**Request:**
-- Method: POST
-- Content-Type: multipart/form-data
-- Body: audio file (supported formats: mp3, wav, m4a, ogg)
-
-**Response:**
-```json
-{
-  "success": true,
-  "srt": "SRT formatted captions",
-  "filename": "uploaded_file.mp3",
-  "duration": 120.5
-}
-```
-
-### GET `/health`
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "OK",
-  "message": "Video Caption Backend is running",
-  "timestamp": "2025-09-28T12:00:00.000Z"
-}
-```
-
-## Project Structure
-
-```
-swarai-backend/
+```text
+BackEnd/
+├── prisma/             # Database schema and local SQLite (dev)
 ├── src/
-│   ├── server.js          # Main server file
-│   ├── routes/
-│   │   └── upload.js      # Audio upload routes
-│   ├── utils/
-│   │   ├── whisper.js     # Whisper integration
-│   │   └── srt.js         # SRT generation utilities
-│   └── middleware/
-│       └── upload.js      # File upload middleware
-├── uploads/               # Temporary audio file storage
-├── package.json
-└── README.md
-```
-
-## Environment Variables
-
-Create a `.env` file in the root directory:
-
-```
-PORT=3001
-MAX_FILE_SIZE=100MB
-WHISPER_MODEL=base
+│   ├── middleware/    # Auth and file upload middlewares
+│   ├── routes/        # Express route handlers
+│   ├── utils/         # Transcription and SRT utility scripts
+│   └── server.js      # Main entry point of the server
+├── uploads/           # Storage for uploaded files (temporary)
+├── .env.example       # Template for environment variables
+├── package.json       # Project dependencies and scripts
+└── README.md          # Project documentation
 ```

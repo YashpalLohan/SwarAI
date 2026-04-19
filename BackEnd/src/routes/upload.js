@@ -20,9 +20,15 @@ router.post('/upload-audio', upload.single('audio'), async (req, res) => {
     console.log(`File size: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
 
     const audioFilePath = req.file.path;
+    const { model, language } = req.body;
     
-    console.log('Processing audio with Whisper...');
-    const transcription = await processAudioWithWhisper(audioFilePath);
+    console.log('--------------------------------------------------');
+    console.log('🚀 TRANSCRIPTION REQUEST RECEIVED');
+    console.log(`MODEL SELECTED: ${model || 'default (large-v3)'}`);
+    console.log(`LANGUAGE: ${language || 'auto-detect'}`);
+    console.log('--------------------------------------------------');
+    
+    const transcription = await processAudioWithWhisper(audioFilePath, model, language);
     
     console.log('Generating SRT file...');
     const srtContent = generateSRT(transcription);
@@ -32,6 +38,22 @@ router.post('/upload-audio', upload.single('audio'), async (req, res) => {
     const validation = validateSRT(srtContent);
     if (!validation.isValid) {
       console.warn('SRT validation warnings:', validation.errors);
+    }
+
+    // NEW: Save to DB if userId is provided
+    const { userId, title } = req.body;
+    let project = null;
+    if (userId) {
+      const prisma = require('../utils/prisma');
+      project = await prisma.project.create({
+        data: {
+          title: title || req.file.originalname,
+          videoUrl: '', // You would typically upload to S3 first
+          audioUrl: req.file.filename,
+          captions: remotionCaptions,
+          userId: userId
+        }
+      });
     }
     
     await fs.remove(audioFilePath);
@@ -45,7 +67,8 @@ router.post('/upload-audio', upload.single('audio'), async (req, res) => {
       transcription: transcription,
       duration: transcription.length > 0 ? transcription[transcription.length - 1].end : 0,
       segmentCount: transcription.length,
-      validation: validation
+      validation: validation,
+      projectId: project?.id
     });
 
   } catch (error) {
@@ -92,6 +115,22 @@ router.post('/upload-audio-hinglish', upload.single('audio'), async (req, res) =
     if (!validation.isValid) {
       console.warn('SRT validation warnings:', validation.errors);
     }
+
+    // Save to DB if userId is provided
+    const { userId, title } = req.body;
+    let project = null;
+    if (userId) {
+      const prisma = require('../utils/prisma');
+      project = await prisma.project.create({
+        data: {
+          title: title || req.file.originalname,
+          videoUrl: '', 
+          audioUrl: req.file.filename,
+          captions: remotionCaptions,
+          userId: userId
+        }
+      });
+    }
     
     await fs.remove(audioFilePath);
     console.log('Temporary file cleaned up');
@@ -105,6 +144,7 @@ router.post('/upload-audio-hinglish', upload.single('audio'), async (req, res) =
       duration: transcription.length > 0 ? transcription[transcription.length - 1].end : 0,
       segmentCount: transcription.length,
       validation: validation,
+      projectId: project?.id,
       model: 'Hinglish Whisper (Oriserve/Whisper-Hindi2Hinglish-Swift)',
       language: 'Hinglish (Hindi + English)'
     });

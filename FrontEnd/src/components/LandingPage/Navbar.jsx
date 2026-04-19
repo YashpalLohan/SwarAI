@@ -1,35 +1,36 @@
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import AuthModal from '../AuthModal';
+import { LogOut, User } from 'lucide-react';
 
 const Navbar = () => {
-  const location = useLocation();
-  const isHome = location.pathname === '/';
-
-  const scrollToSection = (e, id) => {
-    if (isHome) {
-      e.preventDefault();
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  };
+  const { token, openLogin, openSignup } = useAuth();
 
   return (
     <nav className="navbar">
       <div className="container nav-content">
         <div className="logo">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Link to="/">
             <div className="logo-icon"></div>
             <span>SwarAI</span>
           </Link>
         </div>
+        
         <ul className="nav-links">
-          <li><Link to="/" onClick={(e) => scrollToSection(e, 'home')}>Home</Link></li>
-          <li><a href="/#about" onClick={(e) => scrollToSection(e, 'about')}>About Us</a></li>
-          <li><a href="/#features" onClick={(e) => scrollToSection(e, 'features')}>Features</a></li>
-          <li><a href="/#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')}>Testimonials</a></li>
+          <li><Link to="/features">Features</Link></li>
+          <li><Link to="/pricing">Pricing</Link></li>
+          <li><Link to="/about">About Us</Link></li>
+          <li><Link to="/contact">Contact</Link></li>
         </ul>
-        <Link to="/editor" className="btn btn-primary">Get Started</Link>
+        
+        <div className="nav-actions">
+          {token ? (
+            <Link to="/editor" className="btn-nav-cta">Go to Studio</Link>
+          ) : (
+            <button onClick={openSignup} className="btn-nav-cta">Try For Free</button>
+          )}
+        </div>
       </div>
     </nav>
   );

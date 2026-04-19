@@ -1,20 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MoreHorizontal, Pencil, Trash2, Zap, Search } from 'lucide-react';
+import { Pencil, Download } from 'lucide-react';
 import CaptionEditModal from './CaptionEditModal';
+import ConfirmModal from './ConfirmModal';
 
-const TranscriptSidebar = ({ captions, onEdit, onDelete, currentTime = 0 }) => {
+const TranscriptSidebar = ({ captions, onEdit, onDelete, onSync, onExportSRT, onExportTXT, currentTime = 0 }) => {
   const activeRef = useRef(null);
+  const listRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingText, setEditingText] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
-
+  
   const activeIndex = captions.findIndex(c => currentTime >= c.start && currentTime <= c.end);
   const prevActiveIndex = useRef(-1);
 
   useEffect(() => {
     if (activeIndex !== -1 && activeIndex !== prevActiveIndex.current) {
-      if (activeRef.current) {
-        activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (activeRef.current && listRef.current) {
+        const container = listRef.current;
+        const row = activeRef.current;
+        const targetScrollTop = row.offsetTop - (container.offsetHeight / 2) + (row.offsetHeight / 2);
+        
+        container.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
       }
       prevActiveIndex.current = activeIndex;
     }
@@ -39,63 +48,51 @@ const TranscriptSidebar = ({ captions, onEdit, onDelete, currentTime = 0 }) => {
 
   return (
     <div className="transcript-sidebar">
-      <div className="transcript-header">
-        <div className="header-top">
-          <h3>Transcript</h3>
-          <div className="header-actions">
-            <span className="badge-ai">AI Corrected</span>
-            <MoreHorizontal size={18} className="icon-btn-gray" />
-          </div>
-        </div>
-        <div className="search-bar-mini">
-          <Search size={14} />
-          <input type="text" placeholder="Search in transcript..." />
+      <div className="transcript-header studio-style" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '32px' }}>
+        <h3 style={{ margin: 0, fontSize: '1.8rem', fontFamily: 'var(--font-serif)' }}>Transcript</h3>
+        <div className="header-right-actions" style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn-white-outlined" onClick={onExportSRT} style={{ fontSize: '0.65rem', padding: '8px 16px', fontWeight: '800' }}>
+            .SRT
+          </button>
+          <button className="btn-white-outlined" onClick={() => onExportTXT()} style={{ fontSize: '0.65rem', padding: '8px 16px', fontWeight: '800' }}>
+            .TXT
+          </button>
         </div>
       </div>
       
-      <div className="transcript-list">
+      <div className="transcript-list studio-list" ref={listRef}>
         {captions && captions.length > 0 ? (
-          captions.map((cap, i) => {
+          captions.map((cap, index) => {
             const isActive = currentTime >= cap.start && currentTime <= cap.end;
             return (
               <div 
-                key={i} 
+                key={index} 
                 ref={isActive ? activeRef : null}
-                className={`transcript-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleEditClick(i, cap.text)}
+                className={`transcript-row ${isActive ? 'active' : ''}`}
+                onClick={() => onSync(cap.start)}
               >
-                <div className="item-header">
-                  <span className="timestamp">[{formatTime(cap.start)}]</span>
-                  <span className="speaker">Speaker {i % 2 + 1}</span>
-                  <div className="item-meta">
-                    <span className="dots"><MoreHorizontal size={14} /></span>
-                  </div>
+                <div className="row-time">{formatTime(cap.start)}</div>
+                <div className="row-content">
+                  <p className="caption-text-studio">{cap.text}</p>
                 </div>
-                <p className="caption-text">{cap.text}</p>
-                <div className="item-actions">
-                  <button className="action-btn" onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditClick(i, cap.text);
-                  }}>
-                    <Pencil size={11} /> Edit
-                  </button>
-                  <button className="action-btn" onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(i);
-                  }}>
-                    <Trash2 size={11} /> Delete
-                  </button>
-                  <button className="action-btn sync">
-                    <Zap size={11} /> Sync
-                  </button>
+                <div className="row-actions">
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       handleEditClick(index, cap.text);
+                     }}
+                     className="edit-trigger-btn"
+                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: isActive ? '#fff' : '#000', opacity: isActive ? 1 : 0.3 }}
+                   >
+                     <Pencil size={14} />
+                   </button>
                 </div>
               </div>
             );
           })
         ) : (
-          <div className="empty-transcript">
-            <Zap size={40} className="zap-icon" />
-            <p>Your AI-generated transcript <br/> will appear here.</p>
+          <div className="empty-transcript" style={{ textAlign: 'center', padding: '120px 40px', color: '#ccc' }}>
+             <p style={{ fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Ready to generate.</p>
           </div>
         )}
       </div>

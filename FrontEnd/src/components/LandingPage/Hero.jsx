@@ -1,46 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { PlayCircle, Zap } from 'lucide-react';
-import captionMockup from '../../assets/caption-mockup.png';
+import heroIllustration from '../../assets/hero-illustration.png';
 
 const Hero = () => {
   return (
-    <section className="hero" id="home">
+    <section className="hero">
       <div className="container">
         <div className="hero-content">
-          <h1>Effortless AI <br /><span>Video Captions</span></h1>
+          <h1>
+            Caption & manage your content very <span className="accent-block"><i>simple.</i></span>
+          </h1>
           <p className="hero-subtitle">
-            Experience the future of video content with SwarAI. Our advanced AI automatically generates highly accurate captions and subtitles, helping you reach more viewers and increase engagement instantly.
+            The ultimate AI-powered studio for cinematic video captioning. 
+            Elevate your content with word-level sync and high-fidelity transcription.
           </p>
           <div className="hero-btns">
-            <Link to="/editor" className="btn btn-primary">Try Live Demo</Link>
-            <button className="btn btn-outline">Learn More ↗</button>
+            <button className="btn-studio-primary">GET STARTED</button>
+            <button className="btn-studio-outlined">CONTACT US</button>
           </div>
         </div>
         
-        <div className="hero-mockup">
-          <div className="mockup-img-wrapper">
-             <img src={captionMockup} alt="SwarAI Caption Editor Mockup" />
-             <div className="mockup-overlay-card top-left">
-                <div className="avatar">
-                  <PlayCircle size={20} color="#10b981" />
-                </div>
-                <div>
-                  <h4>Auto-Generated Captions</h4>
-                  <p>99.2% Accuracy</p>
-                </div>
-             </div>
-             <div className="mockup-overlay-card bottom-right">
-                <div className="avatar">
-                  <Zap size={20} color="#10b981" />
-                </div>
-                <div>
-                  <h4>Processing Speed</h4>
-                  <p>10x Faster</p>
-                </div>
-             </div>
-          </div>
-        </div>
+        <div className="hero-illustration">
+          <img src={heroIllustration} alt="SwarAI Hero Illustration" />        </div>
       </div>
     </section>
   );

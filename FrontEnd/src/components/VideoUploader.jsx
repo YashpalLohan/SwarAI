@@ -1,28 +1,43 @@
 import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL, fetchFile } from '@ffmpeg/util';
-import { UploadCloud, FileVideo, Info } from 'lucide-react';
+import { UploadCloud, FileVideo, Info, AlertCircle } from 'lucide-react';
 import VideoPlayerWithCaptions from './VideoPlayerWithCaptions';
+import ConfirmModal from './Editor/ConfirmModal';
+import './VideoUploader.css';
 
-const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFileSelect, onTimeUpdate }, ref) => {
+const VideoUploader = forwardRef(({ minimal = false, model = 'large-v3', language = 'auto', font, fontSize, onCaptionsGenerated, onFileSelect, onTimeUpdate }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [transcriptionState, setTranscriptionState] = useState('idle'); // 'idle', 'extracting', 'initializing', 'transcribing'
   const [isFFmpegLoaded, setIsFFmpegLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [extractedAudioUrl, setExtractedAudioUrl] = useState(null);
   const [captions, setCaptions] = useState(null);
   const [srtContent, setSrtContent] = useState(null);
   const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [useHinglishModel, setUseHinglishModel] = useState(true);
+  const [useHinglishModel, setUseHinglishModel] = useState(false);
   const fileInputRef = useRef(null);
   const ffmpegRef = useRef(new FFmpeg());
+
+  const handleReset = () => {
+    setSelectedFile(null);
+    setExtractedAudioUrl(null);
+    setCaptions(null);
+    setSrtContent(null);
+    setProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setTranscriptionState('idle');
+  };
 
   useImperativeHandle(ref, () => ({
     triggerGeneration: () => {
       if (selectedFile) extractAudio();
-      else alert('Please upload a video first');
+      else setError('Please upload a video first');
     },
+    reset: handleReset,
     openFilePicker: () => {
       fileInputRef.current?.click();
     },
@@ -31,8 +46,95 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
     },
     exportAudio: () => {
       downloadAudio();
+    },
+    exportVideo: () => {
+      downloadVideo();
+    },
+    seekTo: (time) => {
+      playerRef.current?.seekTo(time);
     }
   }));
+
+  const playerRef = useRef(null);
+
+  const downloadVideo = async () => {
+    if (!selectedFile || !srtContent) {
+      // If no captions, just download original
+      if (selectedFile) {
+        const url = URL.createObjectURL(selectedFile);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = selectedFile.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      return;
+    }
+
+    try {
+      setIsGeneratingCaptions(true); // Reuse state for progress
+      setTranscriptionState('transcribing'); // Show "Preparing Video..."
+      
+      if (!isFFmpegLoaded) {
+        await loadFFmpeg();
+      }
+
+      const ffmpeg = ffmpegRef.current;
+      const inputVideo = 'video.mp4';
+      const inputSRT = 'subs.srt';
+      const outputVideo = 'captioned_video.mp4';
+
+      await ffmpeg.writeFile(inputVideo, await fetchFile(selectedFile));
+      await ffmpeg.writeFile(inputSRT, srtContent);
+      
+      // Load a font for hard-burning subtitles
+      const fontURL = 'https://raw.githubusercontent.com/google/fonts/main/apache/roboto/Roboto-Regular.ttf';
+      await ffmpeg.writeFile('Roboto-Regular.ttf', await fetchFile(fontURL));
+
+      // HARD-BURN Subtitles into the video (Prints text on frames)
+      // This requires re-encoding the video stream
+      await ffmpeg.exec([
+        '-i', inputVideo, 
+        '-vf', `subtitles=${inputSRT}:fontsdir=/:force_style='Fontname=Roboto-Regular,FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=1,Shadow=0,MarginV=30'`,
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast', // Speed is critical in-browser
+        '-crf', '28',           // Balanced quality/size
+        '-c:a', 'copy',         // Preserve original audio
+        outputVideo
+      ]);
+
+      const data = await ffmpeg.readFile(outputVideo);
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SwarAI_Burned_${selectedFile.name}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Cleanup
+      await ffmpeg.deleteFile(inputVideo);
+      await ffmpeg.deleteFile(inputSRT);
+      await ffmpeg.deleteFile(outputVideo);
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error during video export:', error);
+      alert('Video export failed. Downloading original instead.');
+      // Fallback
+      const url = URL.createObjectURL(selectedFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = selectedFile.name;
+      a.click();
+    } finally {
+      setIsGeneratingCaptions(false);
+    }
+  };
 
   const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -70,8 +172,10 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'extracted_audio.mp3');
+      formData.append('model', model === 'hinglish' ? 'Oriserve/Whisper-Hindi2Hinglish-Swift' : model);
+      formData.append('language', language);
 
-      const endpoint = useHinglishModel ? '/upload-audio-hinglish' : '/upload-audio';
+      const endpoint = model === 'hinglish' ? '/upload-audio-hinglish' : '/upload-audio';
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         body: formData,
@@ -84,17 +188,49 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
       const result = await response.json();
       
       if (result.success) {
-        setCaptions(result.transcription);
+        // BREAK CAPTIIONS INTO 4-SECOND MAX FRAGMENTS
+        const breakLongCaptions = (rawCaptions) => {
+          const final = [];
+          rawCaptions.forEach(cap => {
+            const duration = cap.end - cap.start;
+            if (duration <= 4) {
+              final.push(cap);
+            } else {
+              // Split logic
+              const words = cap.text.split(' ');
+              const segmentsNeeded = Math.ceil(duration / 4);
+              const wordsPerSegment = Math.ceil(words.length / segmentsNeeded);
+              const segmentDuration = duration / segmentsNeeded;
+              
+              for (let i = 0; i < segmentsNeeded; i++) {
+                const segmentWords = words.slice(i * wordsPerSegment, (i + 1) * wordsPerSegment);
+                if (segmentWords.length === 0) continue;
+                
+                final.push({
+                  start: cap.start + (i * segmentDuration),
+                  end: Math.min(cap.start + ((i + 1) * segmentDuration), cap.end),
+                  text: segmentWords.join(' '),
+                  words: segmentWords
+                });
+              }
+            }
+          });
+          return final;
+        };
+
+        const processedCaptions = breakLongCaptions(result.transcription);
+        setCaptions(processedCaptions);
         setSrtContent(result.srt);
-        if (onCaptionsGenerated) onCaptionsGenerated(result.transcription);
-        console.log('Captions generated successfully:', result);
+        if (onCaptionsGenerated) onCaptionsGenerated(processedCaptions);
+        console.log('Captions generated and chunked successfully:', processedCaptions);
       } else {
         throw new Error(result.message || 'Failed to generate captions');
       }
 
     } catch (error) {
       console.error('Error generating captions:', error);
-      alert(`Error generating captions: ${error.message}`);
+      setError(`Caption Generation Failed: ${error.message || 'Server connection lost'}. The project will be reset to ensure a clean state.`);
+      handleReset(); // Auto reset state on failure
     } finally {
       setIsGeneratingCaptions(false);
     }
@@ -128,13 +264,13 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
 
   const extractAudio = async () => {
     if (!selectedFile) return;
+    setTranscriptionState('extracting');
+    setIsLoading(true);
 
     if (!isFFmpegLoaded) {
-      setIsLoading(true);
       await loadFFmpeg();
     }
 
-    setIsLoading(true);
     setProgress(0);
 
     const ffmpeg = ffmpegRef.current;
@@ -160,7 +296,8 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
       
     } catch (error) {
       console.error('Error extracting audio:', error);
-      alert('Error extracting audio. Please try again.');
+      setError('Failed to extract audio. Please check your file format and try again.');
+      handleReset();
     }
 
     setIsLoading(false);
@@ -194,100 +331,95 @@ const VideoUploader = forwardRef(({ minimal = false, onCaptionsGenerated, onFile
 
   return (
     <div className={`video-uploader ${minimal ? 'video-uploader-minimal' : ''}`}>
-      {!captions && (
-        <>
-          <div className="header-section">
-            <h1 className="title">SwarAI Live Demo</h1>
-            <p className="subtitle">Upload a video file to generate captions using AI</p>
-          </div>
-
-          <div className="upload-section">
-            <div
-              className={`upload-zone ${isDragOver ? 'drag-over' : ''} ${selectedFile ? 'has-file' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/*"
-                onChange={handleFileInputChange}
-                className="file-input"
-              />
-              
-              {selectedFile ? (
-                <div className="file-info">
-                  <div className="file-icon">
-                    <FileVideo size={36} color="var(--primary)" />
-                  </div>
-                  <div className="file-details">
-                    <p className="file-name">{selectedFile.name}</p>
-                    <p className="file-size">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="upload-placeholder">
-                  <div className="upload-icon-wrapper">
-                    <UploadCloud size={40} className="upload-icon" />
-                  </div>
-                  <p className="upload-text">Drag and drop a video file here, or click to select</p>
-                  <p className="supported-formats">
-                    Supports: MP4, MOV, AVI
-                  </p>
-                </div>
-              )}
+      {!captions && !selectedFile && (
+        <div className={`upload-stage-centering ${minimal ? 'minimal-mode' : ''}`}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
+          
+          {minimal ? (
+            <div className="minimal-upload-ready">
+              <div className="upload-brand-circle">
+                <UploadCloud size={32} />
+              </div>
+              <h2>Ready to transcribe?</h2>
+              <p>Your media will be analyzed locally for total privacy.</p>
+              <button 
+                className="btn-black"
+                onClick={() => fileInputRef.current?.click()}
+                style={{ marginTop: '20px' }}
+              >
+                UPLOAD VIDEO
+              </button>
             </div>
-
-            {selectedFile && !minimal && (
-              <>
-                <div className="actions">
-                  <button
-                    onClick={extractAudio}
-                    disabled={isLoading || isGeneratingCaptions}
-                    className="extract-btn"
-                  >
-                    {isLoading ? `Generating Captions` : 
-                     isGeneratingCaptions ? 'Generating Captions...' : 
-                     'Generate Captions'}
-                  </button>
+          ) : (
+            <div className="upload-container-v2">
+              <div
+                className={`upload-dropzone-v2 ${isDragOver ? 'drag-over' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="dropzone-content">
+                  <div className="upload-icon-circle">
+                    <UploadCloud size={40} />
+                  </div>
+                  <h3>Select Video to Start</h3>
+                  <p>Drag and drop your file here, or click to browse</p>
+                  <div className="format-chips">
+                    <span>MP4</span><span>MOV</span><span>AVI</span><span>WEBM</span><span>MKV</span>
+                  </div>
                 </div>
-              </>
-            )}
-
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+        {selectedFile && (
+          <div className="video-section" style={{ background: '#000', position: 'relative', width: '100%', height: '100%' }}>
+            <VideoPlayerWithCaptions 
+              ref={playerRef}
+              videoFile={selectedFile}
+              captions={captions || []}
+              onTimeUpdate={onTimeUpdate}
+              font={font}
+              fontSize={fontSize}
+            />
+            
             {(isLoading || isGeneratingCaptions) && (
-              <div className="modern-progress-container">
-                <div className="status-badge">
-                  <div className="pulse-dot"></div>
-                  <span>{isLoading ? 'Processing Video' : 'AI Transcribing...'}</span>
+              <div className="micro-loader-container" style={{ pointerEvents: 'none' }}>
+                <div className="orbital-spinner">
+                  <div className="orbit-core"></div>
+                  <div className="orbit-ring"></div>
                 </div>
-                
-                <div className="modern-progress-bar">
-                  <div 
-                    className="modern-progress-fill" 
-                    style={{ width: `${isLoading ? progress : 100}%`, transition: isGeneratingCaptions ? 'width 2s ease-in-out' : 'width 0.3s ease' }}
-                  ></div>
-                </div>
-                
-                <p className="modern-progress-text">
-                  {isLoading ? `Preparing audio: ${progress}%` : 'SwarAI is generating your captions using Whisper AI. This may take a minute...'}
-                </p>
               </div>
             )}
           </div>
-        </>
-      )}
-
-        {captions && captions.length > 0 && selectedFile && (
-          <div className="video-section">
-            <VideoPlayerWithCaptions 
-              videoFile={selectedFile}
-              captions={captions}
-              onTimeUpdate={onTimeUpdate}
-            />
-          </div>
         )}
+
+      {(isLoading || isGeneratingCaptions) && !selectedFile && (
+        <div className="micro-loader-container">
+          <div className="orbital-spinner">
+            <div className="orbit-core"></div>
+            <div className="orbit-ring"></div>
+          </div>
+        </div>
+      )}
+      <ConfirmModal 
+        isOpen={!!error}
+        onClose={() => setError(null)}
+        onConfirm={() => setError(null)}
+        title="Processing Error"
+        message={error}
+        confirmText="Try Again"
+        variant="danger"
+      />
     </div>
   );
 });

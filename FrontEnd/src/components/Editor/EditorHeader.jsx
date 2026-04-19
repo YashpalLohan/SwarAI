@@ -1,50 +1,63 @@
-import { ChevronDown, CheckCircle, Music, RotateCcw } from 'lucide-react';
+import { Settings, LogOut, Layout } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import UserAvatar from '../UserAvatar';
+import { Link, useLocation } from 'react-router-dom';
 
-const EditorHeader = ({ projectName = "Untitled Project", onExport, onExportAudio, onReset, exportDisabled }) => {
+const EditorHeader = () => {
+  const { user, token, logout } = useAuth();
+  const location = useLocation();
+  const isSettings = location.pathname === '/settings';
+
   return (
     <header className="editor-header">
       <div className="header-left">
-        <span className="project-title">
-          Project: {projectName} <ChevronDown size={14} style={{ marginLeft: '4px' }} />
-        </span>
-        {!exportDisabled && (
-          <button className="btn-reset" onClick={() => {
-            if(window.confirm('Reset this project? This will clear all current captions.')) onReset();
-          }}>
-            <RotateCcw size={14} />
-            Reset
-          </button>
-        )}
+        <div className="logo">
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div className="logo-icon"></div>
+            <span>SwarAI</span>
+          </Link>
+        </div>
       </div>
       
       <div className="header-right">
-        <span className="save-status">
-          <CheckCircle size={14} style={{ marginRight: '6px' }} />
-          Saved to Cloud
-        </span>
-        {!exportDisabled && (
-          <div className="header-actions-group">
-            <button 
-              className="btn btn-secondary-outline" 
-              onClick={onExportAudio}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        {token && (
+          <div className="header-user-section" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+            <Link 
+              to={isSettings ? "/editor" : "/settings"} 
+              className={`btn-settings-nav-trigger ${isSettings ? 'active' : ''}`} 
+              style={{ 
+                textDecoration: 'none',
+                color: isSettings ? '#000' : '#888',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.75rem',
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                transition: 'color 0.2s'
+              }}
             >
-              <Music size={14} />
-              Download Audio
-            </button>
+              {isSettings ? <Layout size={14} /> : <Settings size={14} />}
+              <span>{isSettings ? 'Full Studio' : 'Studio Settings'}</span>
+            </Link>
+            
+            <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <UserAvatar name={user?.name || 'U'} style={user?.avatarStyle || 'beam'} size={24} />
+              <span style={{ fontWeight: '700', fontSize: '0.8rem', color: '#000', letterSpacing: '0.05em' }}>{user?.name || 'User'}</span>
+            </div>
+            
             <button 
-              className="btn btn-export" 
-              onClick={onExport}
+              onClick={logout} 
+              style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+              onMouseOver={(e) => e.currentTarget.style.color = '#000'}
+              onMouseOut={(e) => e.currentTarget.style.color = '#ccc'}
+              title="Logout"
             >
-              Export SRT
+              <LogOut size={16} />
             </button>
           </div>
         )}
-        <div className="user-profile">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" />
-          <span>Sarah J.</span>
-        </div>
-
       </div>
     </header>
   );

@@ -1,5 +1,10 @@
 {
-  "ignore": ["uploads/*", "node_modules/*"],
-  "watch": ["src/*", ".env"],
-  "ext": "js,json"
+  "ignore": [
+    "models_cache/*",
+    "uploads/*",
+    "src/utils/hinglish_whisper.py",
+    "node_modules/*"
+  ],
+  "ext": "js,json,py",
+  "delay": "2500"
 }

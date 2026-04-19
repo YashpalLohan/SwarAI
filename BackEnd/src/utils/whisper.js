@@ -1,263 +1,85 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 
 const pythonCmd = process.platform === 'win32' ? 'py' : 'python3';
 
-async function processAudioWithWhisper(audioFilePath, model = 'base') {
+/**
+ * Cloud Transcription (Groq) - Turbo & Ultra
+ */
+async function transcribeWithGroq(audioFilePath, model = 'whisper-large-v3', language = 'auto') {
   return new Promise((resolve, reject) => {
-    console.log(`🎙️ Starting Whisper transcription with model: ${model}`);
-    
-    if (!fs.existsSync(audioFilePath)) {
-      return reject(new Error('Audio file not found'));
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return reject(new Error('GROQ_API_KEY is missing. Add your key to .env for Cloud Turbo mode.'));
     }
 
-    const whisperArgs = [
-      '-m', 'whisper',
-      audioFilePath,
-      '--model', model,
-      '--output_format', 'json',
-      '--word_timestamps', 'True'
+    console.log(`🚀 [Groq Cloud] Processing: ${model}`);
+
+    const curlArgs = [
+      '-X', 'POST',
+      'https://api.groq.com/openai/v1/audio/transcriptions',
+      '-H', `Authorization: Bearer ${apiKey}`,
+      '-H', 'Content-Type: multipart/form-data',
+      '-F', `file=@${audioFilePath}`,
+      '-F', `model=${model}`,
+      '-F', 'response_format=verbose_json'
     ];
 
-    console.log('Whisper command:', pythonCmd, whisperArgs.join(' '));
+    if (language && language !== 'auto' && language !== '') {
+      curlArgs.push('-F', `language=${language}`);
+    }
 
-    const whisperProcess = spawn(pythonCmd, whisperArgs, {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
+    const curlProcess = spawn('curl', curlArgs);
     let stdout = '';
     let stderr = '';
 
-    whisperProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
+    curlProcess.stdout.on('data', (data) => { stdout += data.toString(); });
+    curlProcess.stderr.on('data', (data) => { stderr += data.toString(); });
 
-    whisperProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-      console.log('Whisper:', data.toString().trim());
-    });
-
-    whisperProcess.on('close', (code) => {
+    curlProcess.on('close', (code) => {
       if (code !== 0) {
-        console.error('Whisper process failed with code:', code);
-        console.error('Stderr:', stderr);
-        return reject(new Error(`Whisper transcription failed: ${stderr}`));
+        return reject(new Error('Cloud API unreachable. Check your internet connection.'));
       }
 
       try {
         const result = JSON.parse(stdout);
+        if (!result.segments) throw new Error('Invalid cloud response.');
         
-        if (!result.segments || !Array.isArray(result.segments)) {
-          return reject(new Error('Invalid Whisper output format'));
-        }
-
-        const segments = result.segments.map(segment => ({
-          start: segment.start,
-          end: segment.end,
-          text: segment.text.trim()
-        })).filter(segment => segment.text.length > 0);
-
-        console.log(`Transcription completed: ${segments.length} segments`);
+        const segments = result.segments.map(s => ({
+          start: s.start,
+          end: s.end,
+          text: s.text.trim()
+        }));
         resolve(segments);
-
-      } catch (parseError) {
-        console.error('Error parsing Whisper output:', parseError);
-        reject(new Error('Failed to parse Whisper transcription result'));
+      } catch (e) {
+        reject(new Error('Failed to parse Cloud response. Ensure your API key is correct.'));
       }
-    });
-
-    whisperProcess.on('error', (error) => {
-      console.error('Error spawning Whisper process:', error);
-      const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
-      reject(new Error(`Failed to start Whisper transcription. Make sure Whisper is installed: ${pipCmd} install openai-whisper`));
     });
   });
 }
 
-async function processAudioWithWhisperSimple(audioFilePath, model = process.env.WHISPER_MODEL || 'base') {
-  return new Promise((resolve, reject) => {
-    console.log(`🎙️ Starting Whisper transcription with multilingual model: ${model}`);
-    
-    const outputDir = path.dirname(audioFilePath);
-    const baseName = path.basename(audioFilePath, path.extname(audioFilePath));
-    
-    const whisperArgs = [
-      audioFilePath,
-      '--model', model,
-      '--output_dir', outputDir,
-      '--output_format', 'srt',
-      '--verbose', 'False',  
-      '--task', 'transcribe',  
-      '--temperature', '0.0'  
-    ];
-
-    console.log('Whisper command:', pythonCmd, '-m', 'whisper', whisperArgs.join(' '));
-
-    const whisperProcess = spawn(pythonCmd, ['-m', 'whisper', ...whisperArgs], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    let stderr = '';
-
-    whisperProcess.stdout.on('data', (data) => {
-      console.log('Whisper output:', data.toString().trim());
-    });
-
-    whisperProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-      console.log('Whisper:', data.toString().trim());
-    });
-
-    whisperProcess.on('close', async (code) => {
-      if (code !== 0) {
-        console.error('Whisper process failed with code:', code);
-        console.error('Stderr:', stderr);
-        
-        if (stderr.includes('certificate verify failed') || stderr.includes('SSL:')) {
-          const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
-          return reject(new Error(`Whisper model download failed due to SSL/network issues. Please pre-download the model: ${pythonCmd} -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import whisper; whisper.load_model('${model}')"`));
-        }
-        
-        return reject(new Error(`Whisper transcription failed: ${stderr}`));
-      }
-
-      try {
-        const srtPath = path.join(outputDir, `${baseName}.srt`);
-        
-        if (fs.existsSync(srtPath)) {
-          const srtContent = await fs.readFile(srtPath, 'utf8');
-          
-          const segments = parseSRTContent(srtContent);
-          
-          try {
-            await fs.remove(srtPath);
-            await fs.remove(path.join(outputDir, `${baseName}.txt`));
-          } catch (cleanupError) {
-            console.warn('Warning: Could not clean up temporary files:', cleanupError.message);
-          }
-          
-          console.log(`Transcription completed: ${segments.length} segments`);
-          resolve(segments);
-        } else {
-          reject(new Error('Whisper did not generate expected output file'));
-        }
-
-      } catch (error) {
-        console.error('Error processing Whisper output:', error);
-        reject(error);
-      }
-    });
-
-    whisperProcess.on('error', (error) => {
-      console.error('Error spawning Whisper process:', error);
-      const pipCmd = process.platform === 'win32' ? 'pip' : 'pip3';
-      reject(new Error(`Failed to start Whisper transcription. Make sure Whisper is installed: ${pipCmd} install openai-whisper`));
-    });
-  });
-}
-
-function parseSRTContent(srtContent) {
-  const segments = [];
-  const entries = srtContent.trim().split('\n\n');
-  
-  for (const entry of entries) {
-    const lines = entry.split('\n');
-    if (lines.length >= 3) {
-      const timeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/);
-      if (timeMatch) {
-        const start = srtTimeToSeconds(timeMatch[1]);
-        const end = srtTimeToSeconds(timeMatch[2]);
-        const text = lines.slice(2).join(' ').trim();
-        
-        segments.push({ start, end, text });
-      }
-    }
+/**
+ * Main Entry Point - All models now run on Cloud for best reliability
+ */
+async function processAudioWithWhisper(audioFilePath, model = 'turbo', language = 'auto') {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error('GROQ_API_KEY is missing. Please add it to .env to enable Cloud transcription.');
   }
-  
-  return segments;
-}
 
-function srtTimeToSeconds(timeStr) {
-  const [time, ms] = timeStr.split(',');
-  const [hours, minutes, seconds] = time.split(':').map(Number);
-  return hours * 3600 + minutes * 60 + seconds + parseInt(ms) / 1000;
-}
+  // Map all selections to cloud models
+  // Distil is only good for English, so it's 'ultra'
+  let cloudModel = 'whisper-large-v3';
+  if (model === 'ultra') {
+    cloudModel = 'distil-whisper-large-v3-en';
+  }
 
-async function processAudioWithHinglishWhisper(audioFilePath, model = 'Oriserve/Whisper-Hindi2Hinglish-Swift') {
-  return new Promise((resolve, reject) => {
-    console.log(`Starting Hinglish Whisper transcription with model: ${model}`);
-    
-    const outputDir = path.dirname(audioFilePath);
-    const baseName = path.basename(audioFilePath, path.extname(audioFilePath));
-    const outputFile = path.join(outputDir, `${baseName}_hinglish.json`);
-    
-    const pythonScript = path.join(__dirname, 'hinglish_whisper.py');
-    
-    const pythonArgs = [
-      pythonScript,
-      audioFilePath,
-      '--model', model,
-      '--output', outputFile
-    ];
-
-    console.log('Hinglish Whisper command:', pythonCmd, pythonArgs.join(' '));
-
-    const pythonProcess = spawn(pythonCmd, pythonArgs, {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    let stderr = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      console.log('Hinglish Whisper output:', data.toString().trim());
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-      console.log('Hinglish Whisper:', data.toString().trim());
-    });
-
-    pythonProcess.on('close', async (code) => {
-      if (code !== 0) {
-        console.warn(`Hinglish Whisper failed (Code ${code}). Falling back to standard Whisper...`);
-        try {
-          const fallbackSegments = await processAudioWithWhisperSimple(audioFilePath);
-          return resolve(fallbackSegments);
-        } catch (fallbackError) {
-          console.error('Hinglish fallback also failed:', fallbackError);
-          return reject(new Error(`Hinglish transcription failed and fallback failed: ${stderr}`));
-        }
-      }
-
-      try {
-        if (!fs.existsSync(outputFile)) {
-          return reject(new Error('Hinglish transcription output file not found'));
-        }
-
-        const transcriptionData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        
-        console.log(`Hinglish transcription completed with ${transcriptionData.segments?.length || 0} segments`);
-        
-        fs.unlinkSync(outputFile);
-        
-        resolve(transcriptionData.segments || []);
-        
-      } catch (error) {
-        console.error('Error parsing Hinglish transcription results:', error);
-        reject(new Error(`Failed to parse Hinglish transcription results: ${error.message}`));
-      }
-    });
-
-    pythonProcess.on('error', (error) => {
-      console.error('Failed to start Hinglish Python process:', error);
-      reject(new Error(`Failed to start Hinglish transcription: ${error.message}`));
-    });
-  });
+  console.log(`📡 [Cloud Route] Routing ${model} request to Groq Cloud (${cloudModel})...`);
+  return transcribeWithGroq(audioFilePath, cloudModel, language);
 }
 
 module.exports = {
-  processAudioWithWhisper: processAudioWithWhisperSimple,
-  processAudioWithHinglishWhisper,
-  processAudioWithWhisperSimple
+  processAudioWithWhisper,
+  transcribeWithGroq
 };

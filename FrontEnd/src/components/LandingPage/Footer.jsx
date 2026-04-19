@@ -1,48 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  const [email, setEmail] = useState('');
+  const [showFlash, setShowFlash] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (email) {
+      setShowFlash(true);
+      setEmail('');
+      setTimeout(() => setShowFlash(false), 3000);
+    }
+  };
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <div className="logo footer-logo">
+            <div className="logo footer-logo-static">
               <div className="logo-icon"></div>
               <span>SwarAI</span>
             </div>
-            <p>The ultimate AI-powered video captioning platform that helps you make your content accessible and engaging for everyone.</p>
+            <p className="footer-desc">
+              The ultimate AI-powered studio for cinematic video captioning. 
+              Elevate your content with word-level sync and high-fidelity transcription.
+            </p>
           </div>
           
           <div className="footer-col">
-            <h4>COMPANY</h4>
+            <h4>STUDIO</h4>
             <ul>
-              <li><a href="#">About Us</a></li>
-              <li><a href="#">Features</a></li>
-              <li><a href="#">Testimonia</a></li>
-              <li><a href="#">Contact Us</a></li>
+              <li><Link to="/about">About Us</Link></li>
+              <li><Link to="/benchmarks">Benchmarks</Link></li>
+              <li><Link to="/showcase">Showcase</Link></li>
+              <li><Link to="/pricing">Pricing</Link></li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>HELP</h4>
+            <h4>DEVELOP</h4>
             <ul>
-              <li><a href="#">Customer Support</a></li>
-              <li><a href="#">Delivery Details</a></li>
-              <li><a href="#">Terms & Conditions</a></li>
-              <li><a href="#">Privacy Policy</a></li>
+              <li><Link to="/documentation">Engine</Link></li>
+              <li><Link to="/api">API Reference</Link></li>
+              <li><Link to="/status">Status</Link></li>
+              <li><Link to="/community">Community</Link></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>LEGAL</h4>
+            <ul>
+              <li><Link to="/terms">Terms</Link></li>
+              <li><Link to="/privacy">Privacy</Link></li>
+              <li><Link to="/contact">Support</Link></li>
+              <li><Link to="/contact">Contact</Link></li>
             </ul>
           </div>
 
           <div className="footer-col newsletter">
             <h4>NEWSLETTER</h4>
-            <form className="newsletter-form">
-              <input type="email" placeholder="Enter your email address" />
-              <button type="submit" className="btn btn-primary">Subscribe Now</button>
+            <form onSubmit={handleSubscribe} className="newsletter-form">
+              <input 
+                type="email" 
+                placeholder="Email Address" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <button type="submit" className="btn-black">JOIN</button>
             </form>
+            {showFlash && (
+              <div className="newsletter-flash">
+                Successfully joined the studio mailing list.
+              </div>
+            )}
           </div>
         </div>
         <div className="copyright">
-          © Copyright 2026. All Rights Reserved.
+          © {new Date().getFullYear()} SwarAI STUDIO. ALL RIGHTS RESERVED.
         </div>
       </div>
     </footer>

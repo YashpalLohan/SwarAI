@@ -1,16 +1,72 @@
-# React + Vite
+# SwarAI - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, professional-grade studio environment for video caption generation and editing. Built with a focus on minimalist design and high-performance AI integration, SwarAI Studio provides a seamless workspace for creators.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Professional Editor**: Full-width studio environment for precise caption editing.
+- **AI-Powered Transcription**: Seamless integration with the backend Whisper engine.
+- **Real-time Preview**: High-performance video playback with dynamic captions using Remotion.
+- **Client-side Processing**: Integration with FFmpeg.wasm for robust video handling.
+- **Minimalist UI**: Clutter-free layout designed for a distraction-free creative process.
+- **Responsive Design**: Polished experience across different screen sizes.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: [React 19](https://react.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Styling**: Vanilla CSS (Modern, premium aesthetics)
+- **Video Processing**: [Remotion](https://www.remotion.dev/) & [FFmpeg.wasm](https://ffmpegwasm.netlify.app/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **State Management**: React Context API
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- [Node.js](https://nodejs.org/) (v18+ recommended)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+
+## Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd SwarAI/FrontEnd
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+## Running the Application
+
+### Development Mode
+```bash
+npm run dev
+```
+The application will be available at `http://localhost:5173`.
+
+### Production Build
+```bash
+npm run build
+```
+The production-ready assets will be generated in the `dist/` folder.
+
+## Directory Structure
+
+```text
+FrontEnd/
+├── public/             # Static assets (favicons, etc.)
+├── src/
+│   ├── assets/        # Images and illustrations
+│   ├── components/    # Reusable UI components
+│   │   ├── Editor/    # Core studio editor components
+│   │   ├── LandingPage/ # Landing page components
+│   │   └── ...        # Shared components (Uploader, Modals)
+│   ├── context/       # Auth and global state management
+│   ├── App.jsx        # Root component and routing
+│   └── main.jsx       # Application entry point
+├── index.html         # HTML template
+├── vite.config.js     # Vite configuration
+└── package.json       # Project dependencies and scripts
+```

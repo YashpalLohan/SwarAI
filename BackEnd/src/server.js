@@ -5,6 +5,8 @@ const fs = require('fs-extra');
 require('dotenv').config();
 
 const uploadRoutes = require('./routes/upload');
+const authRoutes = require('./routes/auth');
+const projectsRoutes = require('./routes/projects');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,7 +21,12 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 fs.ensureDirSync(uploadsDir);
 
+// Static files for direct file access if needed
+app.use('/uploads', express.static(uploadsDir));
+
 app.use('/api', uploadRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 

@@ -1,161 +1,54 @@
-# SwarAI - Video Caption Generator
+# SwarAI Studio
 
-SwarAI is a web application that generates captions for videos using speech-to-text technology. It allows users to upload videos, extract audio, and generate accurate captions that can be displayed alongside the video. The application supports multiple languages and provides a user-friendly interface for editing and customizing captions.
-
-## Features
-
-- **Video Upload**: Upload videos in various formats
-- **Audio Extraction**: Automatically extract audio from videos
-- **Speech-to-Text**: Generate accurate captions using advanced speech recognition
-- **Bilingual Support**: Choose between English and Hinglish (Hindi-English) models
-- **Customizable Captions**: Adjust font, size, and style of captions
-- **Interactive Player**: Play video with synchronized captions
-- **Export Options**: Download captions as SRT or VTT files
-- **Responsive Design**: Works on desktop and mobile devices
-
-## Tech Stack
-
-### Frontend
-- React 19
-- Vite
-- FFmpeg.wasm (for client-side video processing)
-- Remotion Player
-- Tailwind CSS (based on styling patterns)
-
-### Backend
-- Node.js with Express
-- Whisper (for speech-to-text)
-- Multer (for file uploads)
-- CORS (for cross-origin requests)
-
-## Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- FFmpeg (for local development)
-
-## Installation
-
-### Frontend Setup
-
-1. Navigate to the FrontEnd directory:
-   ```bash
-   cd FrontEnd
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-### Backend Setup
-
-1. Navigate to the BackEnd directory:
-   ```bash
-   cd BackEnd
-   ```
-
-2. Install Node.js dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Install Python dependencies (Required for Whisper):
-   ```bash
-   pip3 install openai-whisper setuptools-rust librosa transformers soundfile scipy
-   ```
-
-4. **macOS Only**: If you encounter SSL verification errors when downloading Whisper models, run:
-   ```bash
-   /Applications/Python\ 3.x/Install\ Certificates.command
-   ```
-   *(Replace 3.x with your actual Python version, e.g., 3.12)*
-
-5. Ensure FFmpeg is installed:
-   ```bash
-   # On macOS
-   brew install ffmpeg
-   ```
-
-6. Create a `.env` file in the BackEnd directory:
-   ```
-   PORT=3001
-   WHISPER_MODEL=base
-   ```
-
-7. Start the backend server:
-   ```bash
-   npm run dev
-   ```
-
-## Usage
-
-1. Open the application in your web browser (default: http://localhost:5173)
-2. Click "Upload Video" or drag and drop a video file
-3. Wait for the audio to be extracted and processed
-4. View the generated captions on the video player
-5. Customize the caption appearance using the controls
-6. Download the captions in your preferred format
+SwarAI is a professional, AI-powered video studio designed for effortless caption generation and video editing. By combining state-of-the-art speech-to-text models with a minimalist, high-performance editor, SwarAI empowers creators to produce accessible and engaging video content in minutes.
 
 ## Project Structure
 
+The project is divided into two main components:
+
+- **[FrontEnd](./FrontEnd)**: A React-based minimalist studio editor for video playback, caption management, and real-time previews.
+- **[BackEnd](./BackEnd)**: An Node.js/Express server that handles AI transcription (Whisper), user authentication, and project storage.
+
+## Quick Start
+
+To get the entire platform running locally, follow these steps:
+
+### 1. Prerequisites
+- Node.js (v18+)
+- PostgreSQL database
+- npm or yarn
+
+### 2. Backend Setup
+```bash
+cd BackEnd
+npm install
+cp .env.example .env  # Fill in your credentials
+npx prisma db push
+npm run dev
 ```
-SwarAI/
-├── BackEnd/
-│   ├── src/
-│   │   ├── middleware/    # Express middleware
-│   │   ├── routes/        # API routes
-│   │   └── utils/         # Utility functions
-│   ├── .env.example       # Environment variables template
-│   ├── package.json
-│   └── server.js          # Main server file
-│
-└── FrontEnd/
-    ├── public/            # Static assets
-    ├── src/
-    │   ├── components/    # React components
-    │   │   ├── VideoUploader.jsx
-    │   │   └── VideoPlayerWithCaptions.jsx
-    │   ├── App.jsx        # Main application component
-    │   └── main.jsx       # Application entry point
-    ├── package.json
-    └── vite.config.js
+
+### 3. Frontend Setup
+```bash
+cd FrontEnd
+npm install
+npm run dev
 ```
 
-## Environment Variables
+The application will typically be available at:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3001`
 
-### Backend
-- `PORT`: Port number for the backend server (default: 3001)
-- `WHISPER_MODEL`: Whisper model to use (e.g., 'base.en', 'small', 'medium')
+## Key Features
 
-## Contributing
+- **AI Transcription**: Automatic speech-to-text using OpenAI Whisper.
+- **High-Performance Editor**: Clutter-free workspace for editing captions.
+- **Remotion Integration**: Smooth, programmatic video rendering and previews.
+- **FFmpeg Processing**: Robust client-side and server-side video handling.
+- **Secure Auth**: JWT-based user authentication and project management.
 
-1. Fork the repository
-2. Create a new branch for your feature
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+## Detailed Documentation
 
-## License
+For specific setup details, environment variables, and technical documentation, please refer to the individual READMEs:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- [Whisper](https://openai.com/research/whisper) - Speech recognition model by OpenAI
-- [FFmpeg](https://ffmpeg.org/) - Multimedia framework
-- [React](https://reactjs.org/) - JavaScript library for building user interfaces
-- [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
-
-## Support
-
-For support, please open an issue in the GitHub repository.
+- [Frontend Documentation](./FrontEnd/README.md)
+- [Backend Documentation](./BackEnd/README.md)

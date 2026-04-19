@@ -1,23 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, Maximize2, Type } from 'lucide-react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { Play, Pause, Volume2, Maximize2 } from 'lucide-react';
+import './VideoPlayer.css';
 
-const VideoPlayerWithCaptions = ({ videoFile, captions, onTimeUpdate }) => {
+const VideoPlayerWithCaptions = forwardRef(({ videoFile, captions, onTimeUpdate, font, fontSize }, ref) => {
   const videoRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
+
+  useImperativeHandle(ref, () => ({
+    seekTo: (time) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+      }
+    }
+  }));
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentCaption, setCurrentCaption] = useState('');
   const [videoUrl, setVideoUrl] = useState(null);
-  const [selectedFont, setSelectedFont] = useState('Inter');
   const [duration, setDuration] = useState(0);
   const [processedCaptions, setProcessedCaptions] = useState([]);
   const [currentWords, setCurrentWords] = useState([]);
-  const [highlightedWordIndex, setHighlightedWordIndex] = useState(0);
   
-  const fontOptions = [
-    { value: 'Inter', label: 'Inter (Modern)' },
-    { value: 'Outfit', label: 'Outfit (Sleek)' },
-    { value: 'Georgia', label: 'Georgia (Elegant)' }
-  ];
+  // Font and Size are now managed by EditorWrapper props
 
   useEffect(() => {
     if (videoFile) {
@@ -80,23 +83,36 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onTimeUpdate }) => {
     setProcessedCaptions(processed);
   }, [captions]);
 
+  const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+
+  const SYNC_OFFSET = -0.15; // Precision Lead-In for Lip-Sync
+
   useEffect(() => {
-    // Find the caption that should be active. 
-    // We add a tiny 0.3s grace period to the end to prevent flickering in gaps
-    const current = processedCaptions.find(c => 
-      currentTime >= (c.start - 0.1) && currentTime <= (c.end + 0.3)
+    // TEMPORAL LIP-SYNC ALIGNMENT ENGINE
+    // We apply a lead-in offset to match the initial lip movement (articulation)
+    const segment = processedCaptions.find(c => 
+      currentTime >= (c.start + SYNC_OFFSET) && currentTime <= (c.end + SYNC_OFFSET)
     );
 
-    if (current) {
-      setCurrentCaption(current.text);
-      setCurrentWords(current.words);
-      const progress = (currentTime - current.start) / (current.end - current.start);
-      const idx = Math.floor(progress * current.words.length);
-      setHighlightedWordIndex(Math.min(Math.max(0, idx), current.words.length - 1));
+    if (segment) {
+      setCurrentCaption(segment.text);
+      
+      const words = segment.words || segment.text.split(' ');
+      setCurrentWords(words);
+      
+      // Calculate high-fidelity index relative to the SYNC_OFFSET window
+      const syncStart = segment.start + SYNC_OFFSET;
+      const duration = segment.end - segment.start;
+      const progress = Math.max(0, Math.min(1, (currentTime - syncStart) / duration));
+      
+      const wordCount = words.length;
+      const targetIndex = Math.floor(progress * wordCount);
+      
+      setHighlightedWordIndex(Math.min(targetIndex, wordCount - 1));
     } else {
-      // Small optimization: only clear if we are significantly away from any caption
       setCurrentCaption('');
       setCurrentWords([]);
+      setHighlightedWordIndex(-1);
     }
   }, [currentTime, processedCaptions]);
 
@@ -133,30 +149,29 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onTimeUpdate }) => {
 
   return (
     <div className="premium-player" ref={playerRef}>
-      <div className="player-top-bar">
-        <div className="font-pill">
-          <Type size={14} className="icon" />
-          <select 
-            value={selectedFont} 
-            onChange={(e) => setSelectedFont(e.target.value)}
-            className="font-select"
-          >
-            {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select>
-        </div>
-      </div>
-      
       <div className="video-viewport">
         {videoUrl ? (
-          <video ref={videoRef} src={videoUrl} className="main-video" onClick={togglePlayPause} />
+          <video 
+            ref={videoRef} 
+            src={videoUrl} 
+            className="main-video" 
+            onClick={togglePlayPause}
+            controls={false}
+          />
         ) : (
           <div className="loading-state">Initializing Player...</div>
         )}
         
         {currentCaption && (
-          <div className="glass-caption" style={{ fontFamily: selectedFont }}>
+          <div 
+            className="glass-caption" 
+            style={{ 
+              fontFamily: font,
+              transform: `translateX(-50%) scale(${fontSize || 1.0})` 
+            }}
+          >
             {currentWords.map((word, i) => (
-              <span key={i} className={`word ${i <= highlightedWordIndex ? 'active' : ''}`}>
+              <span key={i} className={`word ${i === highlightedWordIndex ? 'active' : ''}`}>
                 {word}{' '}
               </span>
             ))}
@@ -197,6 +212,6 @@ const VideoPlayerWithCaptions = ({ videoFile, captions, onTimeUpdate }) => {
       </div>
     </div>
   );
-};
+});
 
 export default VideoPlayerWithCaptions;
