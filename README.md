@@ -6,8 +6,9 @@ SwarAI is a professional, AI-powered video studio designed for effortless captio
 
 The project is divided into two main components:
 
-- **[FrontEnd](./FrontEnd)**: A React-based minimalist studio editor for video playback, caption management, and real-time previews.
-- **[BackEnd](./BackEnd)**: An Node.js/Express server that handles AI transcription (Whisper), user authentication, and project storage.
+- **[FrontEnd](./FrontEnd)**: A React-based minimalist studio editor for video playback, caption management, and real-time previews. (Hosted on **Vercel**)
+- **[BackEnd](./BackEnd)**: An Node.js/Express server that handles AI transcription (Whisper), user authentication, and project storage. (Hosted on **Render**)
+
 
 ## Quick Start
 
@@ -31,8 +32,10 @@ npm run dev
 ```bash
 cd FrontEnd
 npm install
+cp .env.example .env  # Point VITE_API_URL to your backend
 npm run dev
 ```
+
 
 The application will typically be available at:
 - Frontend: `http://localhost:5173`

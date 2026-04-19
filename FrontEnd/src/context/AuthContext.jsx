@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 
 const AuthContext = createContext();
 
@@ -57,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', { email, password });
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
       const userData = response.data.user;
       setToken(response.data.token);
       setUser(userData);
@@ -69,7 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (email, password, name) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/signup', { email, password, name });
+      const response = await axios.post(`${API_BASE_URL}/auth/signup`, { email, password, name });
       const userData = response.data.user;
       setToken(response.data.token);
       setUser(userData);
@@ -83,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   const fetchLatestProfile = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await axios.get('http://localhost:3001/api/auth/me', {
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.user) {

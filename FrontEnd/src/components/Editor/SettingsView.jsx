@@ -25,6 +25,9 @@ import UserAvatar from '../UserAvatar';
 import ConfirmModal from './ConfirmModal';
 import './Settings.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+
 const AVATAR_STYLES = [
   { id: 'beam', label: 'Emerald' },
   { id: 'marble', label: 'Ocean' },
@@ -75,7 +78,7 @@ const SettingsView = () => {
     const fullName = `${firstName} ${lastName}`.trim();
 
     try {
-       const response = await axios.put('http://localhost:3001/api/auth/profile', 
+       const response = await axios.put(`${API_BASE_URL}/auth/profile`, 
         { name: fullName, avatarStyle: avatarStyle },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -97,7 +100,7 @@ const SettingsView = () => {
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
-      await axios.delete('http://localhost:3001/api/auth/me', {
+      await axios.delete(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       logout();
@@ -128,7 +131,7 @@ const SettingsView = () => {
     setPasswordMessage({ type: '', text: '' });
     
     try {
-      const response = await axios.put('http://localhost:3001/api/auth/password', 
+      const response = await axios.put(`${API_BASE_URL}/auth/password`, 
         { currentPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

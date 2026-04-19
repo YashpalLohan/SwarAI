@@ -63,10 +63,20 @@ npm run dev
 ```
 The server will start on `http://localhost:3001` (or your specified `PORT`).
 
-### Production Mode
-```bash
-npm start
-```
+## Deployment (Render)
+
+The backend is designed to be hosted as a **Web Service** on **Render.com**:
+
+1. Connect your repository to Render.
+2. Set the **Root Directory** to `BackEnd`.
+3. Build Command: `npm install && npx prisma generate`
+4. Start Command: `npm start`
+5. Add Environment Variables:
+   - `DATABASE_URL` (Neon Postgres)
+   - `GROQ_API_KEY`
+   - `JWT_SECRET`
+   - `FRONTEND_URLS` (Your Vercel URL for CORS)
+
 
 ## API Routes
 

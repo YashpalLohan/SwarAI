@@ -55,7 +55,7 @@ const VideoUploader = forwardRef(({ minimal = false, model = 'large-v3', languag
   const playerRef = useRef(null);
 
 
-  const API_BASE_URL = 'http://localhost:3001/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   const loadFFmpeg = async () => {
     const ffmpeg = ffmpegRef.current;

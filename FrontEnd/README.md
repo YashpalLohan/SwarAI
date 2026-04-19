@@ -38,7 +38,15 @@ A modern, professional-grade studio environment for video caption generation and
    npm install
    ```
 
+3. **Environment Setup**:
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Update `VITE_API_URL` to point to your backend service.
+
 ## Running the Application
+
 
 ### Development Mode
 ```bash
@@ -46,11 +54,18 @@ npm run dev
 ```
 The application will be available at `http://localhost:5173`.
 
-### Production Build
-```bash
-npm run build
-```
 The production-ready assets will be generated in the `dist/` folder.
+
+## Deployment (Vercel)
+
+The frontend is optimized for deployment on **Vercel**:
+
+1. Connect your repository to Vercel.
+2. Set the **Root Directory** to `FrontEnd`.
+3. Framework Preset: `Vite`.
+4. Add Environment Variable: `VITE_API_URL` (points to your production backend).
+5. Deploy.
+
 
 ## Directory Structure
 
