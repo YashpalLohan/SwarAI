@@ -14,7 +14,7 @@ async function transcribeWithGroq(audioFilePath, model = 'whisper-large-v3', lan
       return reject(new Error('GROQ_API_KEY is missing. Add your key to .env for Cloud Turbo mode.'));
     }
 
-    console.log(`🚀 [Groq Cloud] Processing: ${model}`);
+    console.log(`[Groq Cloud] Processing: ${model}`);
 
     const curlArgs = [
       '-X', 'POST',
@@ -75,7 +75,7 @@ async function processAudioWithWhisper(audioFilePath, model = 'turbo', language 
     cloudModel = 'distil-whisper-large-v3-en';
   }
 
-  console.log(`📡 [Cloud Route] Routing ${model} request to Groq Cloud (${cloudModel})...`);
+  console.log(`[Cloud Route] Routing ${model} request to Groq Cloud (${cloudModel})...`);
   return transcribeWithGroq(audioFilePath, cloudModel, language);
 }
 

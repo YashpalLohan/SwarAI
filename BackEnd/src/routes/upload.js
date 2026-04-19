@@ -23,7 +23,7 @@ router.post('/upload-audio', upload.single('audio'), async (req, res) => {
     const { model, language } = req.body;
     
     console.log('--------------------------------------------------');
-    console.log('🚀 TRANSCRIPTION REQUEST RECEIVED');
+    console.log('TRANSCRIPTION REQUEST RECEIVED');
     console.log(`MODEL SELECTED: ${model || 'default (large-v3)'}`);
     console.log(`LANGUAGE: ${language || 'auto-detect'}`);
     console.log('--------------------------------------------------');
@@ -57,7 +57,7 @@ router.post('/upload-audio', upload.single('audio'), async (req, res) => {
     }
     
     await fs.remove(audioFilePath);
-    console.log('🧹 Temporary file cleaned up');
+    console.log('Temporary file cleaned up');
 
     res.json({
       success: true,
@@ -103,7 +103,7 @@ router.post('/upload-audio-hinglish', upload.single('audio'), async (req, res) =
 
     const audioFilePath = req.file.path;
     
-    console.log('🎤 Processing audio with Hinglish Whisper model...');
+    console.log('Processing audio with Hinglish Whisper model...');
     const transcription = await processAudioWithHinglishWhisper(audioFilePath);
     
     console.log('Generating SRT file...');
