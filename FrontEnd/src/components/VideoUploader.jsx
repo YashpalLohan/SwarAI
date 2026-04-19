@@ -47,9 +47,6 @@ const VideoUploader = forwardRef(({ minimal = false, model = 'large-v3', languag
     exportAudio: () => {
       downloadAudio();
     },
-    exportVideo: () => {
-      downloadVideo();
-    },
     seekTo: (time) => {
       playerRef.current?.seekTo(time);
     }
@@ -57,84 +54,6 @@ const VideoUploader = forwardRef(({ minimal = false, model = 'large-v3', languag
 
   const playerRef = useRef(null);
 
-  const downloadVideo = async () => {
-    if (!selectedFile || !srtContent) {
-      // If no captions, just download original
-      if (selectedFile) {
-        const url = URL.createObjectURL(selectedFile);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = selectedFile.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-      return;
-    }
-
-    try {
-      setIsGeneratingCaptions(true); // Reuse state for progress
-      setTranscriptionState('transcribing'); // Show "Preparing Video..."
-      
-      if (!isFFmpegLoaded) {
-        await loadFFmpeg();
-      }
-
-      const ffmpeg = ffmpegRef.current;
-      const inputVideo = 'video.mp4';
-      const inputSRT = 'subs.srt';
-      const outputVideo = 'captioned_video.mp4';
-
-      await ffmpeg.writeFile(inputVideo, await fetchFile(selectedFile));
-      await ffmpeg.writeFile(inputSRT, srtContent);
-      
-      // Load a font for hard-burning subtitles
-      const fontURL = 'https://raw.githubusercontent.com/google/fonts/main/apache/roboto/Roboto-Regular.ttf';
-      await ffmpeg.writeFile('Roboto-Regular.ttf', await fetchFile(fontURL));
-
-      // HARD-BURN Subtitles into the video (Prints text on frames)
-      // This requires re-encoding the video stream
-      await ffmpeg.exec([
-        '-i', inputVideo, 
-        '-vf', `subtitles=${inputSRT}:fontsdir=/:force_style='Fontname=Roboto-Regular,FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=1,Shadow=0,MarginV=30'`,
-        '-c:v', 'libx264',
-        '-preset', 'ultrafast', // Speed is critical in-browser
-        '-crf', '28',           // Balanced quality/size
-        '-c:a', 'copy',         // Preserve original audio
-        outputVideo
-      ]);
-
-      const data = await ffmpeg.readFile(outputVideo);
-      const blob = new Blob([data.buffer], { type: 'video/mp4' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SwarAI_Burned_${selectedFile.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Cleanup
-      await ffmpeg.deleteFile(inputVideo);
-      await ffmpeg.deleteFile(inputSRT);
-      await ffmpeg.deleteFile(outputVideo);
-      URL.revokeObjectURL(url);
-      
-    } catch (error) {
-      console.error('Error during video export:', error);
-      alert('Video export failed. Downloading original instead.');
-      // Fallback
-      const url = URL.createObjectURL(selectedFile);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = selectedFile.name;
-      a.click();
-    } finally {
-      setIsGeneratingCaptions(false);
-    }
-  };
 
   const API_BASE_URL = 'http://localhost:3001/api';
 

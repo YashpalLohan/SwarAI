@@ -68,9 +68,6 @@ const EditorWrapper = () => {
     if (uploaderRef.current) uploaderRef.current.exportSRT();
   };
 
-  const handleExportVideo = () => {
-    if (uploaderRef.current) uploaderRef.current.exportVideo();
-  };
 
   const hasCaptions = captions && captions.length > 0;
 
@@ -179,14 +176,11 @@ const EditorWrapper = () => {
                 currentTime={currentTime}
                 onExportSRT={handleExport}
                 onExportTXT={handleExportTXT}
-                onExportVideo={handleExportVideo}
               />
             </aside>
           )}
         </div>
       </div>
-
-      {/* Footer removed for a cleaner studio experience */}
 
       <ConfirmModal 
         isOpen={isResetModalOpen}
